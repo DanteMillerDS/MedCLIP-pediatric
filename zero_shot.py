@@ -83,7 +83,7 @@ def run_zero_shot_classification_clipmodel(medical_type, batch_size, train_gener
     device = "cuda" if torch.cuda.is_available() else "cpu"
     clip_model, preprocess = clip.load("ViT-B/32", device=device)
     categories = ['normal', 'pneumonia']
-    def zero_shot_classification(model, image_batch):
+    def zero_shot_classification(model, image_batch,categories):
         text_inputs = torch.cat([clip.tokenize(f"An X-Ray image of a {c} lung") for c in categories]).to(device)
         with torch.no_grad():
             image_features = model.encode_image(image_batch)
