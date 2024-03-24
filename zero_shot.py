@@ -94,7 +94,7 @@ def run_zero_shot_classification_clipmodel(medical_type, batch_size, train_gener
             top_probs, top_labels = similarity.topk(1, dim=-1)
         return top_probs, top_labels
 
-    def evaluate(model, data_loaders, device, steps, data_types):
+    def evaluate(model, data_loaders, device, steps, data_types,categories):
         model.eval()
         y_true, y_pred, y_score = [], [], []
         with torch.no_grad():
