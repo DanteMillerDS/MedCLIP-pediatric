@@ -63,9 +63,9 @@ def prepare_data_generators(samples, labels, batch_size):
         shuffle=True,
         seed=60
     )
-    return generator
+    return len(image_list), generator
 
-def main(medical_type,batch_size):
+def create_loader(medical_type,batch_size):
     ai_severity = AiSeverity(medical_type, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     
     # Process folders
@@ -74,8 +74,8 @@ def main(medical_type,batch_size):
     test_samples, test_labels = process_folder(f'{medical_type}/Test/Positive/', ai_severity)
     
     # Prepare data generators
-    train_generator = prepare_data_generators(train_samples, train_labels, batch_size=batch_size)
-    validation_generator = prepare_data_generators(validation_samples, validation_labels, batch_size=batch_size)
-    test_generator = prepare_data_generators(test_samples, test_labels, batch_size=1)
+    train_length,train_generator = prepare_data_generators(train_samples, train_labels, batch_size=batch_size)
+    validation_length, validation_generator = prepare_data_generators(validation_samples, validation_labels, batch_size=batch_size)
+    test_length, test_generator = prepare_data_generators(test_samples, test_labels, batch_size=1)
     
-    return train_generator, validation_generator, test_generator
+    return train_generator, validation_generator, test_generator, train_length, validation_length, test_length
