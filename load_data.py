@@ -32,16 +32,19 @@ class AiSeverity:
         return inputs
 
 def process_folder(folder_path, ai_severity):
+    subdirs = ["Positive", "Negative"]
     file_labels = {}
     file_samples = {}
-    files = os.listdir(folder_path)
-    
-    for file_name in files:
-        file_path = os.path.join(folder_path, file_name)
-        label = 1 if 'Positive' in folder_path else 0
-        sample = ai_severity(file_path)
-        file_samples[file_path] = sample
-        file_labels[file_path] = label
+    for subdir in subdirs:
+        current_folder_path = os.path.join(folder_path, subdir)
+        files = os.listdir(current_folder_path)
+        label = 1 if subdir == "Positive" else 0
+        for file_name in files:
+            file_path = os.path.join(current_folder_path, file_name)
+            if os.path.isfile(file_path):
+                sample = ai_severity(file_path)
+                file_samples[file_path] = sample
+                file_labels[file_path] = label
 
     return file_samples, file_labels
 
@@ -50,11 +53,6 @@ def prepare_data_generators(samples, labels, batch_size):
     datagen = ImageDataGenerator(
         fill_mode="nearest",
         validation_split=0.20,
-        horizontal_flip=True,
-        rotation_range=20,
-        width_shift_range=0.05,
-        height_shift_range=0.05,
-        shear_range=0.05,
     )
     generator = datagen.flow(
         x=np.array([image for image, label in image_list]),
@@ -69,13 +67,13 @@ def create_loader(medical_type,batch_size):
     ai_severity = AiSeverity(medical_type, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     
     # Process folders
-    train_samples, train_labels = process_folder(f'{medical_type}/Train/Positive/', ai_severity)
-    validation_samples, validation_labels = process_folder(f'{medical_type}/Validation/Positive/', ai_severity)
-    test_samples, test_labels = process_folder(f'{medical_type}/Test/Positive/', ai_severity)
+    train_samples, train_labels = process_folder(f'{medical_type}/Train/', ai_severity)
+    validation_samples, validation_labels = process_folder(f'{medical_type}/Validation/', ai_severity)
+    test_samples, test_labels = process_folder(f'{medical_type}/Test/', ai_severity)
     
     # Prepare data generators
     train_length,train_generator = prepare_data_generators(train_samples, train_labels, batch_size=batch_size)
     validation_length, validation_generator = prepare_data_generators(validation_samples, validation_labels, batch_size=batch_size)
-    test_length, test_generator = prepare_data_generators(test_samples, test_labels, batch_size=1)
+    test_length, test_generator = prepare_data_generators(test_samples, test_labels, batch_size=batch_size)
     
     return train_generator, validation_generator, test_generator, train_length, validation_length, test_length
