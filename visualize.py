@@ -11,9 +11,9 @@ def save_random_images_from_generators(train_generator, valid_generator, test_ge
     os.makedirs(directory, exist_ok=True)
     plt.figure(figsize=(12, 8))
     for gen, title in zip([train_generator, valid_generator, test_generator], ["Train", "Validation", "Test"]):
-        images, _ = next(gen)  # Fetch a batch of images and labels
+        images, _ = next(gen)  
         for i in range(num_images):
-            idx = np.random.randint(0, images.shape[0])  # Select a random index
+            idx = np.random.randint(0, images.shape[0])  
             image = images[idx]
 
             if image.shape[0] < image.shape[-1]:  
