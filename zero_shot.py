@@ -33,7 +33,7 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    for vision_model_name,vision_model in zip(["MedCLIPVisionModelViT","MedCLIPVisionModel"],[MedCLIPVisionModelViT,MedCLIPVisionModel]):
+    for vision_model_name,vision_model in zip(["MedCLIPVisionModelViT"],[MedCLIPVisionModelViT]):
         model = MedCLIPModel(vision_cls=vision_model)
         model.from_pretrained()
         model.to(device)
@@ -63,7 +63,7 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
                             top_probs, top_labels = zero_shot_classification(model, inputs, task, n)
                         elif task == "both_tasks":
                             covid_probs, _ = zero_shot_classification(model, inputs, "covid_task", n)
-                            rsna_probs, _ = zero_shot_classification(model, inputs, "rsna_task", n)
+                            rsna_probs, _ = zero_shot_classification(model, inputs, "rsna_task", 1)
                             # Combine probabilities for a joint decision
                             joint_probs = np.maximum(covid_probs, rsna_probs) 
                             top_labels = np.round(joint_probs)
