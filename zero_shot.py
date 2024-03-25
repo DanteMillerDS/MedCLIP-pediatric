@@ -60,18 +60,18 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
                         inputs = torch.from_numpy(inputs).to(device)
                         labels = torch.from_numpy(labels).to(device).float().unsqueeze(1)
                         if task != "both_tasks":
-                            top_probs, top_labels = zero_shot_classification(model,inputs,task,n)
-                            y_true.extend(labels.cpu().numpy())
-                            y_pred.extend(top_labels)
-                            y_score.extend(top_probs)
+                            top_probs, top_labels = zero_shot_classification(model, inputs, task, n)
                         elif task == "both_tasks":
                             covid_probs, _ = zero_shot_classification(model, inputs, "covid_task", n)
                             rsna_probs, _ = zero_shot_classification(model, inputs, "rsna_task", n)
+                            # Combine probabilities for a joint decision
                             joint_probs = np.maximum(covid_probs, rsna_probs) 
-                            joint_labels = np.round(joint_probs)
-                            y_true.extend(labels.cpu().numpy())
-                            y_pred.extend(joint_labels)
-                            y_score.extend(joint_probs)
+                            top_labels = np.round(joint_probs)
+                            top_probs = joint_probs 
+                            
+                        y_true.extend(labels.cpu().numpy())
+                        y_pred.extend(top_labels)
+                        y_score.extend(top_probs)
                               
             return accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score), classification_report(y_true, y_pred), np.array2string(confusion_matrix(y_true, y_pred))
         for task in ["covid_task","rsna_task","both_tasks"]:
