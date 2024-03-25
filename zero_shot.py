@@ -38,8 +38,8 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
     clf = PromptClassifier(model, ensemble=True)
     clf.to(device)
 
-    def zero_shot_classification(model, image_batch,task):
-        task_type = generate_rsna_class_prompts(n=10) if task == "rsna_task" else generate_covid_class_prompts(n=10)
+    def zero_shot_classification(model, image_batch,task,n):
+        task_type = generate_rsna_class_prompts(n=n) if task == "rsna_task" else generate_covid_class_prompts(n=10)
         input_dictionary = {'pixel_values': image_batch}
         cls_prompts = process_class_prompts(task_type)
         input_dictionary['prompt_inputs'] = cls_prompts
@@ -48,7 +48,7 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
         top_labels = np.round(top_probs)
         return top_probs, top_labels
 
-    def evaluate(model, data_loaders, device, steps, data_types,task):
+    def evaluate(model, data_loaders, device, steps, data_types,task,n):
         model.eval()
         y_true, y_pred, y_score = [], [], []
         with torch.no_grad():
@@ -57,27 +57,37 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
                     inputs, labels = data_loader[step_ind][0], data_loader[step_ind][1]
                     inputs = torch.from_numpy(inputs).to(device)
                     labels = torch.from_numpy(labels).to(device).float().unsqueeze(1)
-                    top_probs, top_labels = zero_shot_classification(model,inputs,task)
+                    top_probs, top_labels = zero_shot_classification(model,inputs,task,n)
                     y_true.extend(labels.cpu().numpy())
                     y_pred.extend(top_labels)
                     y_score.extend(top_probs)
         return accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score), classification_report(y_true, y_pred), np.array2string(confusion_matrix(y_true, y_pred))
     for task in ["covid_task","rsna_task"]:
-        acc, prec, rec, auc, cr, cm = evaluate(clf, [train_generator, validation_generator, test_generator],
-                                    device, [steps_per_epoch_training, steps_per_epoch_validation, steps_per_epoch_test],
-                                    ["Train", "Validation", "Test"], task)
-        print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
-        directory = f"{medical_type}/medclip"
-        filename = f"{task}_classification_results.txt"
-        filepath = os.path.join(directory, filename)
-        os.makedirs(directory, exist_ok=True)
-        with open(filepath, "w") as file:
-            file.write(f"Accuracy: {acc:.4f}\n")
-            file.write(f"Precision: {prec:.4f}\n")
-            file.write(f"Recall: {rec:.4f}\n")
-            file.write(f"AUC: {auc:.4f}\n")
-            file.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
-        print(f"Results saved to {filepath}")
+        best_auc = 0
+        best_metrics = None
+        for n_prompts in range(1,101):
+            acc, prec, rec, auc, cr, cm = evaluate(clf, [train_generator, validation_generator, test_generator],
+                                        device, [steps_per_epoch_training, steps_per_epoch_validation, steps_per_epoch_test],
+                                        ["Train", "Validation", "Test"], task,n_prompts)
+            print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
+            if auc > best_auc:
+                best_auc = auc
+                best_metrics = (acc, prec, rec, auc, cr, cm, n_prompts)
+        if best_metrics:
+            acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
+            print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
+            directory = f"{medical_type}/medclip"
+            filename = f"{task}_classification_results.txt"
+            filepath = os.path.join(directory, filename)
+            os.makedirs(directory, exist_ok=True)
+            with open(filepath, "w") as file:
+                file.write(f"Number of Prompts: {n_prompts}\n")
+                file.write(f"Accuracy: {acc:.4f}\n")
+                file.write(f"Precision: {prec:.4f}\n")
+                file.write(f"Recall: {rec:.4f}\n")
+                file.write(f"AUC: {auc:.4f}\n")
+                file.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
+            print(f"Results saved to {filepath}")
     
 def run_zero_shot_classification_clipmodel(medical_type, batch_size, train_generator, validation_generator, test_generator, 
                                  train_length, validation_length, test_length):
