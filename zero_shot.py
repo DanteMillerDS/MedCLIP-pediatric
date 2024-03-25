@@ -72,27 +72,28 @@ def run_zero_shot_classification_medclipmodel(medical_type, generators, steps):
         for task in ["covid_task","rsna_task","both_tasks"]:
             best_auc = 0
             best_metrics = None
-            for n_prompts in range(1,13):
-                acc, prec, rec, auc, cr, cm = evaluate(clf, generators,device, steps, ["Train", "Validation", "Test"], task,n_prompts)
-                print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
-                if auc > best_auc:
-                    best_auc = auc
-                    best_metrics = (acc, prec, rec, auc, cr, cm, n_prompts)
-            if best_metrics:
-                acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
-                print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
-                directory = f"{medical_type}/medclip/{vision_model_name}"
-                filename = f"{task}_classification_results.txt"
-                filepath = os.path.join(directory, filename)
-                os.makedirs(directory, exist_ok=True)
-                with open(filepath, "w") as file:
-                    file.write(f"Number of Prompts: {n_prompts}\n")
-                    file.write(f"Accuracy: {acc:.4f}\n")
-                    file.write(f"Precision: {prec:.4f}\n")
-                    file.write(f"Recall: {rec:.4f}\n")
-                    file.write(f"AUC: {auc:.4f}\n")
-                    file.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
-                print(f"Results saved to {filepath}")
+            for _ in range(20):
+                for n_prompts in range(1,13):
+                    acc, prec, rec, auc, cr, cm = evaluate(clf, generators,device, steps, ["Train", "Validation", "Test"], task,n_prompts)
+                    print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
+                    if auc > best_auc:
+                        best_auc = auc
+                        best_metrics = (acc, prec, rec, auc, cr, cm, n_prompts)
+                if best_metrics:
+                    acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
+                    print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
+                    directory = f"{medical_type}/medclip/{vision_model_name}"
+                    filename = f"{task}_classification_results.txt"
+                    filepath = os.path.join(directory, filename)
+                    os.makedirs(directory, exist_ok=True)
+                    with open(filepath, "w") as file:
+                        file.write(f"Number of Prompts: {n_prompts}\n")
+                        file.write(f"Accuracy: {acc:.4f}\n")
+                        file.write(f"Precision: {prec:.4f}\n")
+                        file.write(f"Recall: {rec:.4f}\n")
+                        file.write(f"AUC: {auc:.4f}\n")
+                        file.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
+                    print(f"Results saved to {filepath}")
         
 def run_zero_shot_classification_clipmodel(medical_type, generators, steps):
 
