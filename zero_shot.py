@@ -39,7 +39,7 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
     clf.to(device)
 
     def zero_shot_classification(model, image_batch,task,n):
-        task_type = generate_rsna_class_prompts(n=n) if task == "rsna_task" else generate_covid_class_prompts(n=10)
+        task_type = generate_rsna_class_prompts(n=n) if task == "rsna_task" else generate_covid_class_prompts(n=n)
         input_dictionary = {'pixel_values': image_batch}
         cls_prompts = process_class_prompts(task_type)
         input_dictionary['prompt_inputs'] = cls_prompts
