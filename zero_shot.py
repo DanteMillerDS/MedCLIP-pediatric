@@ -62,10 +62,10 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
                     y_pred.extend(top_labels)
                     y_score.extend(top_probs)
         return accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score), classification_report(y_true, y_pred), np.array2string(confusion_matrix(y_true, y_pred))
-    for task in ["covid_task","rsna_task"]:
+    for task_n,task in zip([12,312],["covid_task","rsna_task"]):
         best_auc = 0
         best_metrics = None
-        for n_prompts in range(1,101):
+        for n_prompts in range(1,task_n):
             acc, prec, rec, auc, cr, cm = evaluate(clf, [train_generator, validation_generator, test_generator],
                                         device, [steps_per_epoch_training, steps_per_epoch_validation, steps_per_epoch_test],
                                         ["Train", "Validation", "Test"], task,n_prompts)
