@@ -66,13 +66,18 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
                                    device, [steps_per_epoch_training, steps_per_epoch_validation, steps_per_epoch_test],
                                    ["Train", "Validation", "Test"])
     print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
-    with open(f"{medical_type}_medclip_classification_results.txt", "w") as file:
+    directory = f"{medical_type}/medclip"
+    filename = "classification_results.txt"
+    filepath = os.path.join(directory, filename)
+    os.makedirs(directory, exist_ok=True)
+    with open(filepath, "w") as file:
         file.write(f"Accuracy: {acc:.4f}\n")
         file.write(f"Precision: {prec:.4f}\n")
         file.write(f"Recall: {rec:.4f}\n")
         file.write(f"AUC: {auc:.4f}\n")
         file.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
-        
+    print(f"Results saved to {filepath}")
+    
 def run_zero_shot_classification_clipmodel(medical_type, batch_size, train_generator, validation_generator, test_generator, 
                                  train_length, validation_length, test_length):
 
@@ -113,9 +118,14 @@ def run_zero_shot_classification_clipmodel(medical_type, batch_size, train_gener
                                device,[steps_per_epoch_training,steps_per_epoch_validation,steps_per_epoch_test], ["Train","Validation","Test"],
                                categories)
     print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
-    with open(f"{medical_type}_clip_classification_results.txt", "w") as file:
+    directory = f"{medical_type}/clip"
+    filename = "classification_results.txt"
+    filepath = os.path.join(directory, filename)
+    os.makedirs(directory, exist_ok=True)
+    with open(filepath, "w") as file:
         file.write(f"Accuracy: {acc:.4f}\n")
         file.write(f"Precision: {prec:.4f}\n")
         file.write(f"Recall: {rec:.4f}\n")
         file.write(f"AUC: {auc:.4f}\n")
         file.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
+    print(f"Results saved to {filepath}")
