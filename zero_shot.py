@@ -24,13 +24,8 @@ else:
     
 torch._dynamo.config.suppress_errors = True
 
-def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_generator, validation_generator, test_generator, 
-                                 train_length, validation_length, test_length):
-
-    steps_per_epoch_training = train_length // batch_size
-    steps_per_epoch_validation = validation_length // batch_size
-    steps_per_epoch_test = test_length // batch_size
-
+def run_zero_shot_classification_medclipmodel(medical_type, generators, steps):
+    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
     for vision_model_name,vision_model in zip(["MedCLIPVisionModelViT"],[MedCLIPVisionModelViT]):
@@ -78,9 +73,7 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
             best_auc = 0
             best_metrics = None
             for n_prompts in range(1,13):
-                acc, prec, rec, auc, cr, cm = evaluate(clf, [train_generator, validation_generator, test_generator],
-                                            device, [steps_per_epoch_training, steps_per_epoch_validation, steps_per_epoch_test],
-                                            ["Train", "Validation", "Test"], task,n_prompts)
+                acc, prec, rec, auc, cr, cm = evaluate(clf, generators,device, steps, ["Train", "Validation", "Test"], task,n_prompts)
                 print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
                 if auc > best_auc:
                     best_auc = auc
@@ -101,12 +94,7 @@ def run_zero_shot_classification_medclipmodel(medical_type, batch_size, train_ge
                     file.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
                 print(f"Results saved to {filepath}")
         
-def run_zero_shot_classification_clipmodel(medical_type, batch_size, train_generator, validation_generator, test_generator, 
-                                 train_length, validation_length, test_length):
-
-    steps_per_epoch_training = train_length // batch_size
-    steps_per_epoch_validation = validation_length // batch_size
-    steps_per_epoch_test = test_length // batch_size
+def run_zero_shot_classification_clipmodel(medical_type, generators, steps):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     clip_model, preprocess = clip.load("ViT-B/32", device=device)
@@ -139,8 +127,8 @@ def run_zero_shot_classification_clipmodel(medical_type, batch_size, train_gener
                     y_score.extend(top_probs.cpu().numpy())
         return accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score), classification_report(y_true, y_pred), np.array2string(confusion_matrix(y_true, y_pred))
 
-    acc, prec, rec, auc, cr, cm = evaluate(clip_model, [train_generator,validation_generator,test_generator],
-                               device,[steps_per_epoch_training,steps_per_epoch_validation,steps_per_epoch_test], ["Train","Validation","Test"],
+    acc, prec, rec, auc, cr, cm = evaluate(clip_model, generators,
+                               device, steps, ["Train","Validation","Test"],
                                categories)
     print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
     directory = f"{medical_type}/clip"

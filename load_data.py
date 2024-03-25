@@ -73,7 +73,7 @@ def prepare_data_generators(samples, labels, batch_size,model_type):
         shuffle=True,
         seed=60
     )
-    return len(image_list), generator
+    return len(image_list) // batch_size, generator
 
 def create_loader(medical_type,batch_size,model_type):
     ai_severity = AiSeverity(medical_type, model_type,device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -88,4 +88,4 @@ def create_loader(medical_type,batch_size,model_type):
     validation_length, validation_generator = prepare_data_generators(validation_samples, validation_labels, batch_size,model_type)
     test_length, test_generator = prepare_data_generators(test_samples, test_labels, batch_size,model_type)
     
-    return train_generator, validation_generator, test_generator, train_length, validation_length, test_length
+    return [train_generator, validation_generator, test_generator], [train_length, validation_length, test_length]
