@@ -18,7 +18,7 @@ class MedCLIPZeroShotClassifier:
         self.medical_type = medical_type
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
-        self.model = self.load_medclip_model(vision_model_cls)
+        self.medclip_model = self.load_medclip_model(vision_model_cls)
 
     def configure(self):
         """
@@ -59,7 +59,7 @@ class MedCLIPZeroShotClassifier:
             input_dictionary = {'pixel_values': image_batch}
             cls_prompts = process_class_prompts(task_type)
             input_dictionary['prompt_inputs'] = cls_prompts
-            output = self.model(**input_dictionary)['logits'].cpu().numpy()
+            output = self.medclip_model(**input_dictionary)['logits'].cpu().numpy()
             top_probs = output.reshape(1, -1)[0]
             top_labels = np.round(top_probs)
         return top_probs, top_labels
@@ -74,7 +74,7 @@ class MedCLIPZeroShotClassifier:
         :return: Accuracy, precision, recall, AUC, classification report, and confusion matrix of the evaluation.
         """
         y_true, y_pred, y_score = [], [], []
-        self.model.eval()
+        self.medclip_model.eval()
         with torch.no_grad():
             for idx,(data_type, step) in enumerate(steps.items()):
                 for _ in tqdm(range(step), desc=f'Evaluate {data_type}'):

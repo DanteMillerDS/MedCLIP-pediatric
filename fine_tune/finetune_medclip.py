@@ -19,8 +19,8 @@ class TrainMedClipClassifier:
         self.medical_type = medical_type
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
-        self.clip_model, self.preprocess = self.load_clip_model()
-        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=1e-5)
+        self.medclip_model, self.preprocess = self.load_clip_model()
+        self.optimizer = optim.Adam(self.medclip_model.parameters(), lr=1e-5)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
@@ -87,7 +87,7 @@ class TrainMedClipClassifier:
             input_dictionary = {'pixel_values': image_batch}
             cls_prompts = process_class_prompts(task_type)
             input_dictionary['prompt_inputs'] = cls_prompts
-            output = self.model(**input_dictionary)['logits'].cpu().numpy()
+            output = self.medclip_model(**input_dictionary)['logits'].cpu().numpy()
             top_probs = output.reshape(1, -1)[0]
             top_labels = np.round(top_probs)
         return top_probs, top_labels
@@ -102,7 +102,7 @@ class TrainMedClipClassifier:
         :return: Accuracy, precision, recall, AUC, classification report, and confusion matrix of the evaluation.
         """
         y_true, y_pred, y_score = [], [], []
-        self.model.eval()
+        self.medclip_model.eval()
         with torch.no_grad():
             for idx,(data_type, step) in enumerate(steps.items()):
                 for _ in tqdm(range(step), desc=f'Evaluate {data_type}'):
@@ -139,8 +139,10 @@ class TrainMedClipClassifier:
         print(f"Results saved to {filepath}")
 
     def train_validate(self, train_loader, validation_loader, steps, categories):
+        model_save_path = f'results/finetune/{self.medical_type}/medclip/best_model.pth'
+        os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
         for epoch in range(self.epochs):
-            self.clip_model.train()
+            self.medclip_model.train()
             train_losses = []
             for step in tqdm(range(steps["Train"]), desc=f'Epoch {epoch+1}/{self.epochs}, Train'):
                 inputs, labels = next(train_loader)
@@ -155,7 +157,7 @@ class TrainMedClipClassifier:
                 self.optimizer.zero_grad()
                 input_dictionary = {'pixel_values': inputs}
                 cls_prompts = process_class_prompts(texts)
-                logits_per_image, logits_per_text = self.clip_model(inputs, texts)
+                logits_per_image, logits_per_text = self.medclip_model(inputs, texts)
                 
                 ground_truth = torch.arange(len(inputs),dtype=torch.long,device=self.device)
                 total_loss = (self.loss_img(logits_per_image,ground_truth) + self.loss_txt(logits_per_text,ground_truth))/2
@@ -163,19 +165,19 @@ class TrainMedClipClassifier:
                 if self.device == "cpu":
                     self.optimizer.step()
                 else :
-                    self.convert_models_to_fp32(self.clip_model)
+                    self.convert_models_to_fp32(self.medclip_model)
                     self.optimizer.step()
-                    clip.model.convert_weights(self.clip_model)
+                    clip.model.convert_weights(self.medclip_model)
                 train_losses.append(total_loss.item())
             avg_train_loss = np.mean(train_losses)
-            self.clip_model.eval()
+            self.medclip_model.eval()
             validation_losses = []
             for step in tqdm(range(steps["Validation"]), desc=f'Epoch {epoch+1}/{self.epochs}, Validation'):
                 inputs, labels = next(train_loader)
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
                 texts = torch.cat([clip.tokenize(f"a photo of {categories[int(label.item())]} lungs.") for label in labels]).to(self.device)
-                logits_per_image, logits_per_text = self.clip_model(inputs, texts)
+                logits_per_image, logits_per_text = self.medclip_model(inputs, texts)
                 ground_truth = torch.arange(len(inputs),dtype=torch.long,device=self.device)
                 total_loss = (self.loss_img(logits_per_image,ground_truth) + self.loss_txt(logits_per_text,ground_truth))/2
                 validation_losses.append(total_loss.item())
@@ -209,7 +211,7 @@ class TrainMedClipClassifier:
             print(f"Val - Loss: {avg_validation_loss:.4f}, Accuracy: {val_acc:.4f}, Precision: {val_prec:.4f}, Recall: {val_rec:.4f}, AUC: {val_auc:.4f}")
             if avg_validation_loss < self.best_val_loss:
                 self.best_val_loss = avg_validation_loss
-                torch.save(self.clip_model.state_dict(), 'best_model.pth')
+                torch.save(self.medclip_model.state_dict(), 'best_model.pth')
                 self.early_stopping_counter = 0
             else:
                 self.early_stopping_counter += 1
@@ -217,7 +219,7 @@ class TrainMedClipClassifier:
                     self.early_stop = True
                     print("Early stopping triggered.")
                     break
-        self.clip_model.load_state_dict(torch.load('best_model.pth'))
+        self.medclip_model.load_state_dict(torch.load(model_save_path))
 
     def run(self, generators, steps, option, number_of_captions, categories = ['normal', 'covid']):
         """
