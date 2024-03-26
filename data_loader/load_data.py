@@ -45,9 +45,8 @@ class AiSeverity:
         self.medical_type = medical_type
         self.model_type = model_type
         self.medclip_processor = MedCLIPProcessor()
-        model, preprocess = clip.load("ViT-B/32",device="cpu",jit=False)
+        _, preprocess = clip.load("ViT-B/32",device="cpu",jit=False)
         self.clip_processor = preprocess
-
         self.device = device if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.preprocessor = ImagePreprocessor(medclip_processor=self.medclip_processor, clip_processor = self.clip_processor, model_type=self.model_type)
 
@@ -100,7 +99,7 @@ def prepare_data_generators(samples, labels, batch_size, model_type):
         shuffle=True,
         seed=60
     )
-    return len(image_list) // batch_size, generator
+    return len(generator), generator
 
 def create_loader(medical_type, batch_size, model_type):
     """
