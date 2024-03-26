@@ -1,7 +1,8 @@
 import numpy as np
 from tqdm import tqdm
 import torch
-from medclip import MedCLIPModel, MedCLIPVisionModelViT, generate_covid_class_prompts, generate_rsna_class_prompts, process_class_prompts, PromptClassifier
+from medclip import MedCLIPModel, MedCLIPVisionModelViT, MedCLIPVisionModel
+from medclip.prompts import generate_covid_class_prompts, process_class_prompts, generate_rsna_class_prompts
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, classification_report, confusion_matrix
 import os
 

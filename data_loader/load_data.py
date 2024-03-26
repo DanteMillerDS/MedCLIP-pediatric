@@ -3,7 +3,7 @@ import os
 from PIL import Image
 from torchvision import transforms
 import torch
-from keras.preprocessing.image import ImageDataGenerator, image
+from keras.preprocessing import image
 from medclip import MedCLIPProcessor
 np.random.seed(100)
 
@@ -85,7 +85,7 @@ def prepare_data_generators(samples, labels, batch_size, model_type):
     """
     image_list = [(sample if model_type != "medclip" else sample["pixel_values"][0], labels[key]) 
                   for key, sample in samples.items()]
-    datagen = ImageDataGenerator(validation_split=0.20)
+    datagen = image.ImageDataGenerator(validation_split=0.20)
     generator = datagen.flow(
         x=np.array([image for image, label in image_list]),
         y=np.array([label for image, label in image_list]),
