@@ -2,12 +2,15 @@ import numpy as np
 from tqdm import tqdm
 from torch import nn
 import torch.optim as optim
-import clip
 import torch
+from medclip import MedCLIPModel, MedCLIPVisionModelViT, MedCLIPVisionModel, PromptClassifier
+from medclip.prompts import generate_covid_class_prompts, process_class_prompts, generate_rsna_class_prompts
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 from sklearn.metrics import classification_report, confusion_matrix
 import os
 import matplotlib.pyplot as plt
+
+# use broad captions
 
 class TrainMedClassifier:
     def __init__(self, medical_type, epochs=10):
@@ -57,33 +60,34 @@ class TrainMedClassifier:
                 p.data = p.data.float()
                 p.grad.data = p.grad.data.float()
 
-    def load_clip_model(self):
+    def load_medclip_model(self, vision_model_cls):
         """
-        Loads the CLIP model and preprocessing function into the specified device.
-        :return: The CLIP model and its associated preprocessing function.
+        Loads the MedCLIP model based on the specified vision model class.
+        :param vision_model_cls: The class of the vision model to load.
+        :return: The PromptClassifier instance encapsulating the MedCLIP model.
         """
-        model, preprocess = clip.load("ViT-B/32", device=self.device, jit=False)
-        if self.device == "cpu":
-            model.float()
-        else :
-            clip.model.convert_weights(model)
-        return model, preprocess
+        model = MedCLIPModel(vision_cls=vision_model_cls)
+        model.from_pretrained()
+        model.to(self.device)
+        clf = PromptClassifier(model, ensemble=True)
+        clf.to(self.device)
+        return clf
 
-    def zero_shot_classification(self, image_batch, categories):
+    def zero_shot_classification(self, image_batch, n):
         """
         Performs zero-shot classification using the CLIP model on a batch of images.
         :param image_batch: A tensor representing a batch of images.
         :param categories: A list of categories for classification.
         :return: The top probabilities and labels for the classification predictions.
         """
-        text_inputs = torch.cat([clip.tokenize(f"a photo of {c} lungs.") for c in categories]).to(self.device)
         with torch.no_grad():
-            image_features = self.clip_model.encode_image(image_batch)
-            text_features = self.clip_model.encode_text(text_inputs)
-            image_features /= image_features.norm(dim=-1, keepdim=True)
-            text_features /= text_features.norm(dim=-1, keepdim=True)
-            similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1)
-            top_probs, top_labels = similarity.topk(1, dim=-1)
+            task_type = generate_covid_class_prompts(n=n)
+            input_dictionary = {'pixel_values': image_batch}
+            cls_prompts = process_class_prompts(task_type)
+            input_dictionary['prompt_inputs'] = cls_prompts
+            output = self.model(**input_dictionary)['logits'].cpu().numpy()
+            top_probs = output.reshape(1, -1)[0]
+            top_labels = np.round(top_probs)
         return top_probs, top_labels
 
     def evaluate(self, generators, steps, categories):

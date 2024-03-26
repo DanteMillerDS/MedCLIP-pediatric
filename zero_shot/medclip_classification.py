@@ -54,13 +54,14 @@ class MedCLIPZeroShotClassifier:
         :param n: The number of prompts to use for classification.
         :return: The top probabilities and labels for the classification predictions.
         """
-        task_type = generate_rsna_class_prompts(n=n) if task == "rsna_task" else generate_covid_class_prompts(n=n)
-        input_dictionary = {'pixel_values': image_batch}
-        cls_prompts = process_class_prompts(task_type)
-        input_dictionary['prompt_inputs'] = cls_prompts
-        output = self.model(**input_dictionary)['logits'].cpu().numpy()
-        top_probs = output.reshape(1, -1)[0]
-        top_labels = np.round(top_probs)
+        with torch.no_grad():
+            task_type = generate_rsna_class_prompts(n=n) if task == "rsna_task" else generate_covid_class_prompts(n=n)
+            input_dictionary = {'pixel_values': image_batch}
+            cls_prompts = process_class_prompts(task_type)
+            input_dictionary['prompt_inputs'] = cls_prompts
+            output = self.model(**input_dictionary)['logits'].cpu().numpy()
+            top_probs = output.reshape(1, -1)[0]
+            top_labels = np.round(top_probs)
         return top_probs, top_labels
 
     def evaluate(self, generators, steps, task, n):
