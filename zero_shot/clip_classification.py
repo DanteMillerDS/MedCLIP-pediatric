@@ -101,7 +101,7 @@ class CLIPZeroShotClassifier:
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
 
-    def run(self, generators, steps, categories):
+    def run(self, generators, steps, categories = ['normal', 'covid']):
         """
         Coordinates the process of zero-shot classification evaluation and result saving for the CLIP model.
         :param generators: A dictionary of data loaders for each dataset.
