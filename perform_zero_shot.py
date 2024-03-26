@@ -12,10 +12,10 @@ def run_classification_process(medical_type, model_type, batch_size):
     """
     generators, lengths = load_data.create_loader(medical_type, batch_size, model_type)
     visualize.save_random_images_from_generators(generators, [medical_type, model_type], 2)
-    if model_type == "medclip":
+    if model_type == "clip":
         classifier = CLIPZeroShotClassifier(medical_type)
         classifier.run(generators, lengths)
-    elif model_type == "clip":
+    elif model_type == "medclip":
         classifier = MedCLIPZeroShotClassifier(medical_type)
         classifier.run(generators, lengths)
     else:
