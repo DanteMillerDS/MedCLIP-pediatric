@@ -43,6 +43,7 @@ class MedCLIPZeroShotClassifier:
         model.to(self.device)
         clf = PromptClassifier(model, ensemble=True)
         clf.to(self.device)
+        return
 
 
     def zero_shot_classification(self, image_batch, task, n):
