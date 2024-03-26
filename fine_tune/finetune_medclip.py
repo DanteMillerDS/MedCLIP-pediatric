@@ -5,15 +5,14 @@ import torch.optim as optim
 import torch
 from medclip import MedCLIPModel, MedCLIPVisionModelViT, MedCLIPVisionModel, PromptClassifier
 from medclip.prompts import generate_covid_class_prompts, process_class_prompts, generate_rsna_class_prompts
+import clip
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 from sklearn.metrics import classification_report, confusion_matrix
 import os
 import matplotlib.pyplot as plt
 
-# use broad captions
-
-class TrainMedClassifier:
-    def __init__(self, medical_type, epochs=10):
+class TrainMedClipClassifier:
+    def __init__(self, medical_type, epochs=25):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         """
@@ -21,7 +20,7 @@ class TrainMedClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.clip_model, self.preprocess = self.load_clip_model()
-        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=5e-5)
+        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=1e-5)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
@@ -73,7 +72,7 @@ class TrainMedClassifier:
         clf.to(self.device)
         return clf
 
-    def zero_shot_classification(self, image_batch, n):
+    def zero_shot_classification(self, image_batch, categories):
         """
         Performs zero-shot classification using the CLIP model on a batch of images.
         :param image_batch: A tensor representing a batch of images.
@@ -81,7 +80,10 @@ class TrainMedClassifier:
         :return: The top probabilities and labels for the classification predictions.
         """
         with torch.no_grad():
-            task_type = generate_covid_class_prompts(n=n)
+            if self.option == "random_captions":  
+                task_type = generate_covid_class_prompts(n=self.number_of_captions)
+            elif self.option == "regular_captions":
+                task_type = {c: [f"a photo of {c} lungs."] for c in categories}
             input_dictionary = {'pixel_values': image_batch}
             cls_prompts = process_class_prompts(task_type)
             input_dictionary['prompt_inputs'] = cls_prompts
@@ -90,26 +92,27 @@ class TrainMedClassifier:
             top_labels = np.round(top_probs)
         return top_probs, top_labels
 
-    def evaluate(self, generators, steps, categories):
+    def evaluate(self, generators, steps, task, n):
         """
-        Evaluates the CLIP model using provided data loaders and computes classification metrics.
+        Evaluates the classifier performance on given datasets for a specified task and number of prompts.
         :param generators: A dictionary of data loaders for each dataset (e.g., 'Train', 'Validation', 'Test').
-        :param steps: A dictionary specifying the number of batches to evaluate for each dataset.
-        :param categories: A list of categories for classification.
-        :return: Accuracy, precision, recall, AUC, classification report, and confusion matrix.
+        :param steps: A dictionary specifying the number of evaluation steps for each dataset.
+        :param task: The specific classification task to evaluate.
+        :param n: The number of prompts to use for zero-shot classification.
+        :return: Accuracy, precision, recall, AUC, classification report, and confusion matrix of the evaluation.
         """
         y_true, y_pred, y_score = [], [], []
-        self.clip_model.eval()
+        self.model.eval()
         with torch.no_grad():
             for idx,(data_type, step) in enumerate(steps.items()):
                 for _ in tqdm(range(step), desc=f'Evaluate {data_type}'):
                     inputs, labels = next(generators[idx])
                     inputs = torch.from_numpy(inputs).to(self.device)
                     labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
-                    top_probs, top_labels = self.zero_shot_classification(inputs, categories)
+                    top_probs, top_labels = self.zero_shot_classification(inputs, task, n)
                     y_true.extend(labels.cpu().numpy())
-                    y_pred.extend(top_labels.cpu().numpy())
-                    y_score.extend(top_probs.cpu().numpy())
+                    y_pred.extend(top_labels)
+                    y_score.extend(top_probs)
                 generators[idx].reset()
         acc, prec, rec, auc = accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score)
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
@@ -126,7 +129,7 @@ class TrainMedClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a text file.
         """
-        directory = f"results/{self.medical_type}/clip"
+        directory = f"results/finetune/{self.medical_type}/clip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -143,9 +146,17 @@ class TrainMedClassifier:
                 inputs, labels = next(train_loader)
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
-                texts = torch.cat([clip.tokenize(f"a photo of {categories[int(label.item())]} lungs.") for label in labels]).to(self.device)
+                
+                if self.option == "random_captions":  
+                    task_type = generate_covid_class_prompts(n=self.number_of_captions)
+                elif self.option == "regular_captions":
+                    task_type = {c: [f"a photo of {c} lungs."] for c in categories}
+                texts = torch.cat([f"a photo of {categories[int(label.item())]} lungs." for label in labels]).to(self.device)
                 self.optimizer.zero_grad()
+                input_dictionary = {'pixel_values': inputs}
+                cls_prompts = process_class_prompts(texts)
                 logits_per_image, logits_per_text = self.clip_model(inputs, texts)
+                
                 ground_truth = torch.arange(len(inputs),dtype=torch.long,device=self.device)
                 total_loss = (self.loss_img(logits_per_image,ground_truth) + self.loss_txt(logits_per_text,ground_truth))/2
                 total_loss.backward()
@@ -208,9 +219,7 @@ class TrainMedClassifier:
                     break
         self.clip_model.load_state_dict(torch.load('best_model.pth'))
 
-
-
-    def run(self, generators, steps, categories = ['normal', 'covid']):
+    def run(self, generators, steps, option, number_of_captions, categories = ['normal', 'covid']):
         """
         Coordinates the process of zero-shot classification evaluation and result saving for the CLIP model.
         :param generators: A dictionary of data loaders for each dataset.
@@ -218,6 +227,9 @@ class TrainMedClassifier:
         :param categories: A list of categories for classification.
         :return: None. Prints the evaluation metrics and saves the results.
         """
+        self.option = option
+        self.number_of_captions = number_of_captions
+        assert self.option == "random_captions" and self.number_of_captions >= 1 or self.option == "regular_captions" and self.number_of_captions == 1, "Invalid option settings"
         self.train_validate(generators[0],generators[1],steps,categories)
         acc, prec, rec, auc, cr, cm = self.evaluate([generators[2]], {"Test":steps["Test"]}, categories)
         print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")

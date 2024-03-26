@@ -10,7 +10,7 @@ import os
 import matplotlib.pyplot as plt
 
 class TrainClipClassifier:
-    def __init__(self, medical_type, epochs=10):
+    def __init__(self, medical_type, epochs=25):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         """
@@ -18,7 +18,7 @@ class TrainClipClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.clip_model, self.preprocess = self.load_clip_model()
-        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=5e-5)
+        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=1e-5)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
@@ -122,7 +122,7 @@ class TrainClipClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a text file.
         """
-        directory = f"results/{self.medical_type}/clip"
+        directory = f"results/finetune/{self.medical_type}/clip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -203,7 +203,6 @@ class TrainClipClassifier:
                     print("Early stopping triggered.")
                     break
         self.clip_model.load_state_dict(torch.load('best_model.pth'))
-
 
 
     def run(self, generators, steps, categories = ['normal', 'covid']):

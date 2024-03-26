@@ -105,7 +105,7 @@ class MedCLIPZeroShotClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a file in the specified directory.
         """
-        directory = f"results/{self.medical_type}/medclip/{task}"
+        directory = f"results/zero_shot/{self.medical_type}/medclip/{task}"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)

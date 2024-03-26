@@ -9,7 +9,7 @@ def create_save_directory(info):
     :return: The filepath where the images will be saved.
     """
     medical_type, model_type = info
-    directory = os.path.join("results",medical_type, model_type, "images")
+    directory = os.path.join("results","visualization",medical_type, model_type, "images")
     filename = "cxr_images.png"
     filepath = os.path.join(directory, filename)
     os.makedirs(directory, exist_ok=True)
