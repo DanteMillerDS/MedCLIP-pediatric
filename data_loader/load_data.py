@@ -5,6 +5,7 @@ from torchvision import transforms
 import torch
 from keras.preprocessing import image
 from medclip import MedCLIPProcessor
+import clip
 np.random.seed(100)
 
 class ImagePreprocessor:
@@ -27,9 +28,12 @@ class ImagePreprocessor:
             img = Image.open(jpeg_path)
             inputs = self.processor(images=img)
         else:
-            img = image.load_img(jpeg_path, target_size=(224, 224),
-                                 color_mode='rgb', interpolation='lanczos')
-            inputs = np.asarray(img, dtype='uint8') / 255
+            # img = image.load_img(jpeg_path, target_size=(224, 224),
+            #                      color_mode='rgb', interpolation='lanczos')
+            # inputs = np.asarray(img, dtype='uint8') / 255
+            device = "cpu" # If using GPU then use mixed precision training.
+            model, preprocess = clip.load("ViT-B/32",device=device,jit=False)
+            inputs = preprocess(Image.open(jpeg_path))
         return inputs
 
 class AiSeverity:

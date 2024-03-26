@@ -85,6 +85,7 @@ class MedCLIPZeroShotClassifier:
                     y_pred.extend(top_labels)
                     y_score.extend(top_probs)
                 generators[idx].reset()
+        
         acc, prec, rec, auc = accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score)
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
         return acc, prec, rec, auc, cr, cm
