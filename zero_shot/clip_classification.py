@@ -71,7 +71,7 @@ class CLIPZeroShotClassifier:
                 for _ in tqdm(range(step), desc=f'Evaluate {data_type}'):
                     inputs, labels = next(generators[idx])
                     ##inputs = self.preprocess(inputs)
-                    inputs = torch.from_numpy(inputs).to(self.device).permute(0, 3, 1, 2)
+                    inputs = torch.from_numpy(inputs).to(self.device)
                     labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
                     top_probs, top_labels = self.zero_shot_classification(inputs, categories)
                     y_true.extend(labels.cpu().numpy())

@@ -14,8 +14,9 @@ class ImagePreprocessor:
     It supports preprocessing for both 'medclip' and other generic models
     by adjusting the image format accordingly.
     """
-    def __init__(self, processor, model_type):
-        self.processor = processor
+    def __init__(self, medclip_processor, clip_processor, model_type):
+        self.medclip_processor = medclip_processor
+        self.clip_processor = clip_processor
         self.model_type = model_type
 
     def __call__(self, jpeg_path):
@@ -26,14 +27,13 @@ class ImagePreprocessor:
         """
         if self.model_type == "medclip":
             img = Image.open(jpeg_path)
-            inputs = self.processor(images=img)
+            inputs = self.medclip_processor(images=img)
         else:
             # img = image.load_img(jpeg_path, target_size=(224, 224),
             #                      color_mode='rgb', interpolation='lanczos')
             # inputs = np.asarray(img, dtype='uint8') / 255
-            device = "cpu" # If using GPU then use mixed precision training.
-            model, preprocess = clip.load("ViT-B/32",device=device,jit=False)
-            inputs = preprocess(Image.open(jpeg_path))
+            img = Image.open(jpeg_path)
+            inputs = self.clip_processor(img)
         return inputs
 
 class AiSeverity:
@@ -44,9 +44,12 @@ class AiSeverity:
     def __init__(self, medical_type, model_type, device=None):
         self.medical_type = medical_type
         self.model_type = model_type
-        self.processor = MedCLIPProcessor()
+        self.medclip_processor = MedCLIPProcessor()
+        model, preprocess = clip.load("ViT-B/32",device="cpu",jit=False)
+        self.clip_processor = preprocess
+
         self.device = device if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.preprocessor = ImagePreprocessor(processor=self.processor, model_type=self.model_type)
+        self.preprocessor = ImagePreprocessor(medclip_processor=self.medclip_processor, clip_processor = self.clip_processor, model_type=self.model_type)
 
     def process_image(self, jpeg_path):
         """
