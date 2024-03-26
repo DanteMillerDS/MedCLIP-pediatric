@@ -132,6 +132,8 @@ class TrainClipClassifier:
         print(f"Results saved to {filepath}")
 
     def train_validate(self, train_loader, validation_loader, steps, categories):
+        model_save_path = f'results/finetune/{self.medical_type}/clip/best_model.pth'
+        os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
         for epoch in range(self.epochs):
             self.clip_model.train()
             train_losses = []
@@ -194,7 +196,7 @@ class TrainClipClassifier:
             print(f"Val - Loss: {avg_validation_loss:.4f}, Accuracy: {val_acc:.4f}, Precision: {val_prec:.4f}, Recall: {val_rec:.4f}, AUC: {val_auc:.4f}")
             if avg_validation_loss < self.best_val_loss:
                 self.best_val_loss = avg_validation_loss
-                torch.save(self.clip_model.state_dict(), 'best_model.pth')
+                torch.save(self.clip_model.state_dict(), model_save_path)
                 self.early_stopping_counter = 0
             else:
                 self.early_stopping_counter += 1
@@ -202,7 +204,7 @@ class TrainClipClassifier:
                     self.early_stop = True
                     print("Early stopping triggered.")
                     break
-        self.clip_model.load_state_dict(torch.load('best_model.pth'))
+        self.clip_model.load_state_dict(torch.load(model_save_path))
 
 
     def run(self, generators, steps, categories = ['normal', 'covid']):
