@@ -15,7 +15,7 @@ class CLIPZeroShotClassifier:
         :return: None.
         """
         self.medical_type = medical_type
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.clip_model, self.preprocess = self.load_clip_model()
     
