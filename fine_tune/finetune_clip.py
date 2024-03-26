@@ -137,7 +137,7 @@ class TrainClipClassifier:
         for epoch in range(self.epochs):
             self.clip_model.train()
             train_losses = []
-            for step in tqdm(range(steps["Train"]), desc=f'Epoch {epoch+1}/{self.epochs}, Train'):
+            for _ in tqdm(range(steps["Train"]), desc=f'Epoch {epoch+1}/{self.epochs}, Train'):
                 inputs, labels = next(train_loader)
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
@@ -157,8 +157,8 @@ class TrainClipClassifier:
             avg_train_loss = np.mean(train_losses)
             self.clip_model.eval()
             validation_losses = []
-            for step in tqdm(range(steps["Validation"]), desc=f'Epoch {epoch+1}/{self.epochs}, Validation'):
-                inputs, labels = next(train_loader)
+            for _ in tqdm(range(steps["Validation"]), desc=f'Epoch {epoch+1}/{self.epochs}, Validation'):
+                inputs, labels = next(validation_loader)
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
                 texts = torch.cat([clip.tokenize(f"a photo of {categories[int(label.item())]} lungs.") for label in labels]).to(self.device)
