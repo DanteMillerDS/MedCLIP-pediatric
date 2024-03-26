@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_a
 import os
 
 class CLIPZeroShotClassifier:
-    def __init__(self, medical_type, device=None):
+    def __init__(self, medical_type):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         
@@ -15,7 +15,7 @@ class CLIPZeroShotClassifier:
         :return: None.
         """
         self.medical_type = medical_type
-        self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.clip_model, self.preprocess = self.load_clip_model()
     

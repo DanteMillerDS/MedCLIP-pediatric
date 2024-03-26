@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_a
 import os
 
 class MedCLIPZeroShotClassifier:
-    def __init__(self, medical_type, vision_model_cls=MedCLIPVisionModelViT, device=None):
+    def __init__(self, medical_type, vision_model_cls=MedCLIPVisionModelViT):
         """
         Initializes the classifier with a specific medical type and model configuration.
         :param medical_type: A string representing the medical classification task.
@@ -16,7 +16,7 @@ class MedCLIPZeroShotClassifier:
         :return: None.
         """
         self.medical_type = medical_type
-        self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.model = self.load_medclip_model(vision_model_cls)
 
@@ -38,9 +38,12 @@ class MedCLIPZeroShotClassifier:
         :param vision_model_cls: The class of the vision model to load.
         :return: The PromptClassifier instance encapsulating the MedCLIP model.
         """
-        model = MedCLIPModel(vision_cls=vision_model_cls).from_pretrained().to(self.device)
-        clf = PromptClassifier(model, ensemble=True).to(self.device)
-        return clf
+        model = MedCLIPModel(vision_cls=vision_model_cls)
+        model.from_pretrained()
+        model.to(self.device)
+        clf = PromptClassifier(model, ensemble=True)
+        clf.to(self.device)
+
 
     def zero_shot_classification(self, image_batch, task, n):
         """
