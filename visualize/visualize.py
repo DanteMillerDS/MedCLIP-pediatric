@@ -30,6 +30,7 @@ def select_random_images(generator, num_images=2):
         if image.shape[0] < image.shape[-1]:
             image = image.transpose(1, 2, 0)
         selected_images.append(image)
+    generator.reset()
     return selected_images
 
 def plot_images(images, titles, filepath):

@@ -71,15 +71,16 @@ class MedCLIPZeroShotClassifier:
         y_true, y_pred, y_score = [], [], []
         self.model.eval()
         with torch.no_grad():
-            for data_type, step in steps.items():
+            for idx,(data_type, step) in enumerate(steps.items()):
                 for _ in tqdm(range(step), desc=f'Evaluate {data_type}'):
-                    inputs, labels = next(generators[data_type])
+                    inputs, labels = next(generators[idx])
                     inputs = torch.from_numpy(inputs).to(self.device)
                     labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
                     top_probs, top_labels = self.zero_shot_classification(inputs, task, n)
                     y_true.extend(labels.cpu().numpy())
                     y_pred.extend(top_labels)
                     y_score.extend(top_probs)
+                generators[idx].reset()
         acc, prec, rec, auc = accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score)
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
         return acc, prec, rec, auc, cr, cm

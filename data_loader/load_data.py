@@ -110,4 +110,7 @@ def create_loader(medical_type, batch_size, model_type):
     train_length, train_generator = prepare_data_generators(train_samples, train_labels, batch_size, model_type)
     validation_length, validation_generator = prepare_data_generators(validation_samples, validation_labels, batch_size, model_type)
     test_length, test_generator = prepare_data_generators(test_samples, test_labels, batch_size, model_type)
-    return [train_generator, validation_generator, test_generator], [train_length, validation_length, test_length]
+    lengths = [train_length, validation_length, test_length]
+    dataset_types = ['Train', 'Validation', 'Test']
+    steps = dict(zip(dataset_types, lengths))
+    return [train_generator, validation_generator, test_generator], steps

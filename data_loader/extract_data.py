@@ -7,11 +7,10 @@ def mount_google_drive():
     Mounts Google Drive to the Colab environment if it is not already mounted.
     :return: None.
     """
-    if not os.path.ismount('/content/drive'):
-        print("Mounting Google Drive...")
-        drive.mount('/content/drive')
-    else:
-        print("Google Drive is already mounted.")
+    
+    print("Mounting Google Drive...")
+    drive.mount('/content/drive')
+
 
 def copy_files_from_drive():
     """
@@ -38,6 +37,9 @@ def mount_and_process():
     and extracting those files for processing. 
     :return: None.
     """
-    mount_google_drive()
-    copy_files_from_drive()
-    extract_zip_files()
+    if not os.path.ismount('/content/drive'):
+        mount_google_drive()
+        copy_files_from_drive()
+        extract_zip_files()
+    else:
+        print("Google Drive is already mounted.")
