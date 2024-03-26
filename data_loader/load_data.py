@@ -4,11 +4,7 @@ from PIL import Image
 from torchvision import transforms
 import torch
 from keras.preprocessing.image import ImageDataGenerator, image
-
-# Assuming MedCLIPProcessor is defined elsewhere.
 from medclip import MedCLIPProcessor
-
-# Set the random seed for reproducibility across runs.
 np.random.seed(100)
 
 class ImagePreprocessor:

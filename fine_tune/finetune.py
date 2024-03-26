@@ -1,6 +1,6 @@
 import torch
 from torch import optim
-import clip
+import model_evaluation.clip_utils as clip_utils
 import os
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, classification_report, confusion_matrix
@@ -21,7 +21,7 @@ def convert_models_to_fp32(model):
             p.grad.data = p.grad.data.float()
 
 def zero_shot_classification(model, image_batch, categories, device):
-    text_inputs = torch.cat([clip.tokenize(f"a photo of {c} lungs.") for c in categories]).to(device)
+    text_inputs = torch.cat([clip_utils.tokenize(f"a photo of {c} lungs.") for c in categories]).to(device)
     with torch.no_grad():
         image_features = model.encode_image(image_batch)
         text_features = model.encode_text(text_inputs)
@@ -46,12 +46,12 @@ def evaluate(model, data_loader, device, categories):
 
 def train_clip(medical_type, batch_size, train_generator, validation_generator, train_length, validation_length, EPOCH=10):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model, preprocess = clip.load("ViT-B/32", device=device, jit=False)
+    model, preprocess = clip_utils.load("ViT-B/32", device=device, jit=False)
     
     if device == "cpu":
         model.float()
     else:
-        clip.model.convert_weights(model)
+        clip_utils.model.convert_weights(model)
     
     optimizer = optim.Adam(model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-6, weight_decay=0.2)
     
@@ -69,7 +69,7 @@ def train_clip(medical_type, batch_size, train_generator, validation_generator, 
             else : 
                 convert_models_to_fp32(model)
                 optimizer.step()
-                clip.model.convert_weights(model)
+                clip_utils.model.convert_weights(model)
 
     categories = ["Category1", "Category2"]  # Placeholder for actual categories
     acc, prec, rec, auc, cr, cm = evaluate(model, validation_generator, device, categories)
