@@ -43,7 +43,7 @@ class MedCLIPZeroShotClassifier:
         model.to(self.device)
         clf = PromptClassifier(model, ensemble=True)
         clf.to(self.device)
-        return
+        return clf
 
 
     def zero_shot_classification(self, image_batch, task, n):
@@ -89,28 +89,6 @@ class MedCLIPZeroShotClassifier:
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
         return acc, prec, rec, auc, cr, cm
 
-    def run(self, generators, steps):
-        """
-        Runs the zero-shot classification and evaluates performance across specified tasks.
-        :param generators: A dictionary of data loaders for each dataset.
-        :param steps: A dictionary specifying the number of evaluation steps for each dataset.
-        :return: None. Prints and saves the evaluation results.
-        """
-        for task in ["covid_task", "rsna_task"]:
-            best_auc = 0
-            best_metrics = None
-            for n_prompts in range(1, 13):
-                acc, prec, rec, auc, cr, cm = self.evaluate(generators, steps, task, n_prompts)
-                print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
-                if auc > best_auc:
-                    best_auc = auc
-                    best_metrics = (acc, prec, rec, auc, cr, cm, n_prompts)
-
-            if best_metrics:
-                acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
-                print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
-                self.save_results(task, n_prompts, acc, prec, rec, auc, cr, cm)
-
     def save_results(self, task, n_prompts, acc, prec, rec, auc, cr, cm):
         """
         Saves the evaluation results to a file.
@@ -133,3 +111,26 @@ class MedCLIPZeroShotClassifier:
             file.write(f"Number of Prompts: {n_prompts}\nAccuracy: {acc:.4f}\nPrecision: {prec:.4f}\nRecall: {rec:.4f}\nAUC: {auc:.4f}\n")
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
+        
+    def run(self, generators, steps):
+        """
+        Runs the zero-shot classification and evaluates performance across specified tasks.
+        :param generators: A dictionary of data loaders for each dataset.
+        :param steps: A dictionary specifying the number of evaluation steps for each dataset.
+        :return: None. Prints and saves the evaluation results.
+        """
+        for task in ["covid_task", "rsna_task"]:
+            best_auc = 0
+            best_metrics = None
+            for n_prompts in range(1, 13):
+                acc, prec, rec, auc, cr, cm = self.evaluate(generators, steps, task, n_prompts)
+                print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
+                if auc > best_auc:
+                    best_auc = auc
+                    best_metrics = (acc, prec, rec, auc, cr, cm, n_prompts)
+
+            if best_metrics:
+                acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
+                print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
+                self.save_results(task, n_prompts, acc, prec, rec, auc, cr, cm)
+

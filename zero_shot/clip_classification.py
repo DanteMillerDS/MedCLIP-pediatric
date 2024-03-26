@@ -47,7 +47,6 @@ class CLIPZeroShotClassifier:
         :return: The top probabilities and labels for the classification predictions.
         """
         text_inputs = torch.cat([clip.tokenize(f"a photo of {c} lungs.") for c in categories]).to(self.device)
-        image_batch = self.preprocess(image_batch).unsqueeze(0).to(self.device)
         with torch.no_grad():
             image_features = self.clip_model.encode_image(image_batch)
             text_features = self.clip_model.encode_text(text_inputs)
@@ -71,12 +70,13 @@ class CLIPZeroShotClassifier:
             for idx,(data_type, step) in enumerate(steps.items()):
                 for _ in tqdm(range(step), desc=f'Evaluate {data_type}'):
                     inputs, labels = next(generators[idx])
+                    ##inputs = self.preprocess(inputs)
                     inputs = torch.from_numpy(inputs).to(self.device).permute(0, 3, 1, 2)
                     labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
                     top_probs, top_labels = self.zero_shot_classification(inputs, categories)
                     y_true.extend(labels.cpu().numpy())
-                    y_pred.extend(top_labels)
-                    y_score.extend(top_probs)
+                    y_pred.extend(top_labels.cpu().numpy())
+                    y_score.extend(top_probs.cpu().numpy())
                 generators[idx].reset()
         acc, prec, rec, auc = accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score)
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
