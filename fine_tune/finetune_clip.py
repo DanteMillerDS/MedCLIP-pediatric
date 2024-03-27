@@ -10,7 +10,7 @@ import os
 import matplotlib.pyplot as plt
 
 class TrainClipClassifier:
-    def __init__(self, medical_type, epochs=25):
+    def __init__(self, medical_type, epochs=40):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         """
@@ -188,7 +188,7 @@ class TrainClipClassifier:
                 plt.legend(loc='best')
                 plt.title(metric_name.capitalize())
                 plt.tight_layout()
-                plt.savefig(f'metrics_{metric_name}_epoch.png')
+                plt.savefig(f'results/finetune/{self.medical_type}/clip/metrics_{metric_name}_epoch.png')
                 plt.close()
 
             print(f"Epoch {epoch+1}/{self.epochs}")

@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_a
 import os
 
 class MedCLIPZeroShotClassifier:
-    def __init__(self, medical_type, vision_model_cls=MedCLIPVisionModelViT):
+    def __init__(self, medical_type, vision_model_cls=MedCLIPVisionModelViT,path=None):
         """
         Initializes the classifier with a specific medical type and model configuration.
         :param medical_type: A string representing the medical classification task.
@@ -19,7 +19,8 @@ class MedCLIPZeroShotClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.medclip_model = self.load_medclip_model(vision_model_cls)
-
+        if path is not None:
+            self.medclip_model.load_state_dict(torch.load(path))
     def configure(self):
         """
         Configures the system environment for optimal performance.
