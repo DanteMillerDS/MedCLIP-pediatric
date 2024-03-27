@@ -8,8 +8,8 @@ def create_save_directory(info):
     :param info: A tuple containing (medical_type, model_type) to define the directory.
     :return: The filepath where the images will be saved.
     """
-    medical_type, model_type = info
-    directory = os.path.join("results","visualization",medical_type, model_type, "images")
+    medical_type, model_type, task = info
+    directory = os.path.join("results","visualization", task, medical_type, model_type, "images")
     filename = "cxr_images.png"
     filepath = os.path.join(directory, filename)
     os.makedirs(directory, exist_ok=True)

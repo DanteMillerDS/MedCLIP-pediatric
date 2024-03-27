@@ -196,7 +196,7 @@ class TrainClipClassifier:
             print(f"Val - Loss: {avg_validation_loss:.4f}, Accuracy: {val_acc:.4f}, Precision: {val_prec:.4f}, Recall: {val_rec:.4f}, AUC: {val_auc:.4f}")
             if avg_validation_loss < self.best_val_loss:
                 self.best_val_loss = avg_validation_loss
-                torch.save(self.clip_model.state_dict(), 'best_model.pth')
+                torch.save(self.clip_model.state_dict(), model_save_path)
                 self.early_stopping_counter = 0
             else:
                 self.early_stopping_counter += 1
