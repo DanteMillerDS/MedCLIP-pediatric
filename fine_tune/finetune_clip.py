@@ -10,7 +10,7 @@ import os
 import matplotlib.pyplot as plt
 
 class TrainClipClassifier:
-    def __init__(self, medical_type, epochs=40):
+    def __init__(self, medical_type, epochs=15):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         """
@@ -18,7 +18,7 @@ class TrainClipClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.clip_model, self.preprocess = self.load_clip_model()
-        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=1e-5)
+        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=5e-5)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
@@ -34,7 +34,7 @@ class TrainClipClassifier:
             'train_auc': [],
             'val_auc': [],
         }
-        self.early_stopping_patience = 15
+        self.early_stopping_patience = 5
         self.early_stopping_counter = 0
         self.best_val_loss = float('inf')
         self.early_stop = False
