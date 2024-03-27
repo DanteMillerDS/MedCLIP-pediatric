@@ -34,7 +34,7 @@ class TrainClipClassifier:
             'train_auc': [],
             'val_auc': [],
         }
-        self.early_stopping_patience = 5
+        self.early_stopping_patience = 15
         self.early_stopping_counter = 0
         self.best_val_loss = float('inf')
         self.early_stop = False

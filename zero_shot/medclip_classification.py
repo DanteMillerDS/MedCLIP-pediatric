@@ -62,8 +62,9 @@ class MedCLIPZeroShotClassifier:
             input_dictionary['prompt_inputs'] = cls_prompts
             output = self.medclip_model(**input_dictionary)['logits'].cpu().numpy()
             top_probs = output.reshape(1, -1)[0]
-            top_labels = np.round(top_probs)
-        return top_probs, top_labels
+            pred_score = torch.tensor(top_probs).sigmoid().numpy().flatten()
+            top_labels = np.round(pred_score)
+        return pred_score, top_labels
 
     def evaluate(self, generators, steps, task, n):
         """
@@ -106,7 +107,7 @@ class MedCLIPZeroShotClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a file in the specified directory.
         """
-        directory = f"results/zero_shot/{self.medical_type}/medclip/{task}"
+        directory = f"results/zero_shot/{self.medical_type}/medclip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -115,14 +116,14 @@ class MedCLIPZeroShotClassifier:
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
         
-    def run(self, generators, steps):
+    def run(self, generators, steps, tasks = ["covid_task", "rsna_task"]):
         """
         Runs the zero-shot classification and evaluates performance across specified tasks.
         :param generators: A dictionary of data loaders for each dataset.
         :param steps: A dictionary specifying the number of evaluation steps for each dataset.
         :return: None. Prints and saves the evaluation results.
         """
-        for task in ["covid_task", "rsna_task"]:
+        for task in tasks:
             best_auc = 0
             best_metrics = None
             for n_prompts in range(1, 13):

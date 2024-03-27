@@ -23,6 +23,6 @@ if __name__ == "__main__":
     batch_size = 256
     model_types = ['medclip']
     medical_types = ['ucsd', 'ori']
-    ucsd_classifier = run_finetune_clip(model_types[0], medical_types[0], batch_size)
-    ori_classifier = run_finetune_clip(model_types[0], medical_types[1], batch_size)
+    ucsd_classifier = run_finetune_clip(medical_types[0], model_types[0], batch_size)
+    ori_classifier = run_finetune_clip(medical_types[1], model_types[0], batch_size)
     

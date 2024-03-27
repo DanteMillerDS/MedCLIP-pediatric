@@ -13,15 +13,15 @@ from torch.cuda.amp import GradScaler, autocast
 import matplotlib.pyplot as plt
 
 class TrainMedClipClassifier:
-    def __init__(self, medical_type, epochs=40):
+    def __init__(self, medical_type, epochs=25):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         """
         self.medical_type = medical_type
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
-        self.medclip_model = self.load_medclip_model(MedCLIPVisionModelViT)
-        self.optimizer = optim.Adam(self.medclip_model.parameters(), lr=1e-5)
+        self.medclip_model, self.clf = self.load_medclip_model(MedCLIPVisionModelViT)
+        self.optimizer = optim.Adam(self.medclip_model.parameters(), lr=5e-5)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
@@ -41,6 +41,7 @@ class TrainMedClipClassifier:
         self.early_stopping_counter = 0
         self.best_val_loss = float('inf')
         self.early_stop = False
+        self.max_grad_norm =1
 
     def configure(self):
         """
@@ -69,13 +70,9 @@ class TrainMedClipClassifier:
         model = MedCLIPModel(vision_cls=vision_model_cls)
         model.from_pretrained()
         model.to(self.device)
-        # clf = PromptClassifier(model, ensemble=True)
-        # clf.to(self.device)
-        if self.device == "cpu":
-            model.float()
-        else :
-            clip.model.convert_weights(model)
-        return model
+        clf = PromptClassifier(model)
+        clf.to(self.device)
+        return model, clf
 
     def zero_shot_classification(self, image_batch, categories):
         """
@@ -84,18 +81,16 @@ class TrainMedClipClassifier:
         :param categories: A list of categories for classification.
         :return: The top probabilities and labels for the classification predictions.
         """
-        clf = PromptClassifier(self.medclip_model, ensemble=True)
-        clf.to(self.device)
-        clf.eval()
         with torch.no_grad():
             texts = {"COVID": [f"a photo of covid lungs."]}
             input_dictionary = {'pixel_values': image_batch}
             cls_prompts = process_class_prompts(texts)
             input_dictionary['prompt_inputs'] = cls_prompts
-            output = clf(**input_dictionary)['logits'].cpu().numpy()
+            output = self.clf(**input_dictionary)['logits'].cpu().numpy()
             top_probs = output.reshape(1, -1)[0]
-            top_labels = np.round(top_probs)
-        return top_probs, top_labels
+            pred_score = torch.tensor(top_probs).sigmoid().numpy().flatten()
+            top_labels = np.round(pred_score)
+        return pred_score, top_labels
 
     def evaluate(self, generators, steps, task, ):
         """
@@ -118,6 +113,7 @@ class TrainMedClipClassifier:
                     y_pred.extend(top_labels)
                     y_score.extend(top_probs)
                 generators[idx].reset()
+   
         acc, prec, rec, auc = accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score)
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
         return acc, prec, rec, auc, cr, cm
@@ -133,7 +129,7 @@ class TrainMedClipClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a text file.
         """
-        directory = f"results/finetune/{self.medical_type}/clip"
+        directory = f"results/finetune/{self.medical_type}/medclip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -145,35 +141,34 @@ class TrainMedClipClassifier:
     def train_validate(self, train_loader, validation_loader, steps, categories):
         model_save_path = f'results/finetune/{self.medical_type}/medclip/best_model.pth'
         os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+        scaler = torch.cuda.amp.GradScaler()
         for epoch in range(self.epochs):
             self.medclip_model.train()
             train_losses = []
-            for step in tqdm(range(), desc=f'Epoch {epoch+1}/{self.epochs}, Train'):
+            for step in tqdm(range(steps["Train"]), desc=f'Epoch {epoch+1}/{self.epochs}, Train'):
                 inputs, labels = next(train_loader)
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
-
+                
                 if self.option == "regular_captions":
                   texts = {"COVID": [f"a photo of {categories[int(labels[i].item())]} lungs." for i in range(len(labels))]}
-                cls_prompts = process_class_prompts(texts)  
+               
+                cls_prompts = process_class_prompts(texts)
                 self.optimizer.zero_grad()
                 input_dictionary = {'pixel_values': inputs}
                 input_dictionary['prompt_inputs'] = cls_prompts
                 with autocast():
-                  output = self.medclip_model(input_ids=input_dictionary["prompt_inputs"]["COVID"]["input_ids"],
+                  loss_value = self.medclip_model(input_ids=input_dictionary["prompt_inputs"]["COVID"]["input_ids"],
                                               pixel_values=input_dictionary["pixel_values"],
-                                              attention_mask=input_dictionary["prompt_inputs"]["COVID"]["attention_mask"])
-                logits_per_image, logits_per_text = output["logits"], output["logits_per_text"]            
-                ground_truth = torch.arange(len(inputs),dtype=torch.long,device=self.device)
-                total_loss = (self.loss_img(logits_per_image,ground_truth) + self.loss_txt(logits_per_text,ground_truth))/2
-                total_loss.backward()
-                if self.device == "cpu":
-                    self.optimizer.step()
-                else :
-                    self.convert_models_to_fp32(self.medclip_model)
-                    self.optimizer.step()
-                    clip.model.convert_weights(self.medclip_model)
-                train_losses.append(total_loss.item())
+                                              attention_mask=input_dictionary["prompt_inputs"]["COVID"]["attention_mask"],
+                                              return_loss = True)['loss_value']
+                  scaler.scale(loss_value).backward()
+                  scaler.unscale_(self.optimizer)
+                  torch.nn.utils.clip_grad_norm_(self.medclip_model.parameters(), self.max_grad_norm)
+                  scaler.step(self.optimizer)
+                  scaler.update()
+                  
+                train_losses.append(loss_value.item())
             avg_train_loss = np.mean(train_losses)
             self.medclip_model.eval()
             validation_losses = []
@@ -181,20 +176,21 @@ class TrainMedClipClassifier:
                 inputs, labels = next(validation_loader)
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
-
+                
                 if self.option == "regular_captions":
                   texts = {"COVID": [f"a photo of {categories[int(labels[i].item())]} lungs." for i in range(len(labels))]}
-                cls_prompts = process_class_prompts(texts)  
+               
+                cls_prompts = process_class_prompts(texts)
+                self.optimizer.zero_grad()
                 input_dictionary = {'pixel_values': inputs}
                 input_dictionary['prompt_inputs'] = cls_prompts
                 with autocast():
-                  output = self.medclip_model(input_ids=input_dictionary["prompt_inputs"]["COVID"]["input_ids"],
+                  loss_value = self.medclip_model(input_ids=input_dictionary["prompt_inputs"]["COVID"]["input_ids"],
                                               pixel_values=input_dictionary["pixel_values"],
-                                              attention_mask=input_dictionary["prompt_inputs"]["COVID"]["attention_mask"])
-                logits_per_image, logits_per_text = output["logits"], output["logits_per_text"]            
-                ground_truth = torch.arange(len(inputs),dtype=torch.long,device=self.device)
-                total_loss = (self.loss_img(logits_per_image,ground_truth) + self.loss_txt(logits_per_text,ground_truth))/2
-                validation_losses.append(total_loss.item())
+                                              attention_mask=input_dictionary["prompt_inputs"]["COVID"]["attention_mask"],
+                                              return_loss = True)['loss_value']
+                                  
+                validation_losses.append(loss_value.item())
             avg_validation_loss = np.mean(validation_losses)
             train_acc, train_prec, train_rec, train_auc, _, _ = self.evaluate([train_loader], {"Train":steps["Train"]}, categories)
             val_acc, val_prec, val_rec, val_auc, _, _ = self.evaluate([validation_loader], {"Validation":steps["Validation"]}, categories)
@@ -217,7 +213,7 @@ class TrainMedClipClassifier:
                 plt.legend(loc='best')
                 plt.title(metric_name.capitalize())
                 plt.tight_layout()
-                plt.savefig(f'metrics_{metric_name}_epoch.png')
+                plt.savefig(f'results/finetune/{self.medical_type}/medclip/metrics_{metric_name}_epoch.png')
                 plt.close()
 
             print(f"Epoch {epoch+1}/{self.epochs}")
