@@ -13,7 +13,7 @@ from torch.cuda.amp import GradScaler, autocast
 import matplotlib.pyplot as plt
 
 class TrainMedClipClassifier:
-    def __init__(self, medical_type, epochs=15):
+    def __init__(self, medical_type, epochs=25):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         """
@@ -21,7 +21,7 @@ class TrainMedClipClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.medclip_model, self.clf = self.load_medclip_model(MedCLIPVisionModelViT)
-        self.optimizer = optim.Adam(self.medclip_model.parameters(), lr=1e-5,weight_decay = 0.01)
+        self.optimizer = optim.Adam(self.medclip_model.parameters(), lr=1e-5,weight_decay = 1e-6)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
@@ -92,7 +92,7 @@ class TrainMedClipClassifier:
             top_labels = np.round(pred_score)
         return pred_score, top_labels
 
-    def evaluate(self, generators, steps, task, ):
+    def evaluate(self, generators, steps, task ):
         """
         Evaluates the classifier performance on given datasets for a specified task and number of prompts.
         :param generators: A dictionary of data loaders for each dataset (e.g., 'Train', 'Validation', 'Test').

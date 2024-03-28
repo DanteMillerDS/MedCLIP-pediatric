@@ -10,7 +10,7 @@ import os
 import matplotlib.pyplot as plt
 
 class TrainClipClassifier:
-    def __init__(self, medical_type, epochs=15):
+    def __init__(self, medical_type, epochs=25):
         """
         Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
         """
