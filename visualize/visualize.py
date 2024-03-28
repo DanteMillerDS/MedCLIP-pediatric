@@ -22,18 +22,21 @@ def select_random_images(generator, num_images=2):
     :param num_images: The number of random images to select. Default is 2.
     :return: A list of randomly selected images.
     """
-    images, _ = next(generator)
+    images, labels = next(generator)
     selected_images = []
+    selected_labels = []
     for _ in range(num_images):
         idx = np.random.randint(0, images.shape[0])
         image = images[idx]
+        label = labels[idx]
         if image.shape[0] < image.shape[-1]:
             image = image.transpose(1, 2, 0)
         selected_images.append(image)
+        selected_labels.append(label)
     generator.reset()
-    return selected_images
+    return selected_images, selected_labels
 
-def plot_images(images, titles, filepath):
+def plot_images(set_images_labels, titles, filepath):
     """
     Plots a list of images and saves them to a file.
     :param images: A list of lists of images to plot.
@@ -42,11 +45,12 @@ def plot_images(images, titles, filepath):
     :return: None.
     """
     plt.figure(figsize=(12, 8))
-    for i, image_batch in enumerate(images):
-        for j, image in enumerate(image_batch):
+    for i, (image_batch,label_batch) in enumerate(set_images_labels):
+        for j, (image,label) in enumerate(zip(image_batch,label_batch)):
             plt.subplot(3, len(image_batch), j + 1 + (i * len(image_batch)))
             plt.imshow(image)
-            plt.title(titles[i])
+            label = "Covid" if label == 1 else "Normal"
+            plt.title(f"Patient has {label} lungs.")
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Results saved to {filepath}")
@@ -63,7 +67,7 @@ def save_random_images_from_generators(generators, info, num_images=2):
     filepath = create_save_directory(info)
     all_images = []
     for gen in generators:
-        selected_images = select_random_images(gen, num_images)
-        all_images.append(selected_images)
+        selected_images,selected_labels = select_random_images(gen, num_images)
+        all_images.append((selected_images,selected_labels))
         gen.reset()
     plot_images(all_images, ["Train", "Validation", "Test"], filepath)
