@@ -18,7 +18,7 @@ class TrainClipClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.clip_model, self.preprocess = self.load_clip_model()
-        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=5e-5)
+        self.optimizer = optim.Adam(self.clip_model.parameters(), lr=1e-5,weight_decay = 0.01)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
