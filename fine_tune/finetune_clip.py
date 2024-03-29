@@ -52,6 +52,11 @@ class TrainClipClassifier:
         torch._dynamo.config.suppress_errors = True
 
     def convert_models_to_fp32(self, model):
+        """
+        Converts model parameters and gradients to float32 precision. This is necessary for compatibility with certain optimizers or hardware.
+        :params model: The model to convert to float32 precision.
+        :return: None. Converts the model parameters and gradients in-place.
+        """   
         for p in model.parameters():
             if p.grad is not None:
                 p.data = p.data.float()
@@ -132,6 +137,13 @@ class TrainClipClassifier:
         print(f"Results saved to {filepath}")
 
     def train_validate(self, train_loader, validation_loader, steps, categories):
+        """
+        Coordinates the training and validation of the CLIP model for a specified number of epochs.
+        param train_loader: The data loader for the training dataset.
+        param validation_loader: The data loader for the validation dataset.
+        param steps: A dictionary specifying the number of batches to train and validate for each dataset.
+        param categories: A list of categories for classification.
+        """
         model_save_path = f'results/finetune/{self.medical_type}/clip/best_model.pth'
         os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
         for epoch in range(self.epochs):

@@ -5,7 +5,7 @@ from zero_shot.clip_classification import CLIPZeroShotClassifier
 from zero_shot.medclip_classification import MedCLIPZeroShotClassifier
 def run_classification_process_medclip(medical_type, model_type, batch_size):
     """
-    Handles the process of running zero-shot classification for a given model type and medical type.
+    Handles the process of running zero-shot classification for medclip and a given medical type.
     :param medical_type: The type of medical data to classify ('ucsd', 'ori').
     :param model_type: The type of model to use for classification ('medclip', 'clip').
     :param batch_size: The batch size for data loading.

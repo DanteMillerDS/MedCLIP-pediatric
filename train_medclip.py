@@ -4,7 +4,7 @@ import visualize.visualize as visualize
 from fine_tune.finetune_medclip import TrainMedClipClassifier
 def run_finetune_clip(medical_type, model_type, batch_size):
     """
-    Performs fine-tuning of the CLIP model on a given medical type and model type.
+    Performs fine-tuning of the MedCLIP model on a given medical type and model type.
     :param medical_type: The type of medical data to classify ('ucsd', 'ori').
     :param model_type: The type of model to use for classification ('medclip', 'clip').
     :param batch_size: The batch size for data loading.
@@ -13,7 +13,7 @@ def run_finetune_clip(medical_type, model_type, batch_size):
     visualize.save_random_images_from_generators(generators, [medical_type, model_type, "fine_tune"], 2)
     if model_type == "medclip":
         classifier = TrainMedClipClassifier(medical_type)
-        classifier.run(generators, lengths,"regular_captions",1)
+        classifier.run(generators, lengths,1)
         return classifier
     else:
         print("Did not define a proper classifer!")

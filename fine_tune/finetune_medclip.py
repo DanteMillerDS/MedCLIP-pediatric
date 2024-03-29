@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 class TrainMedClipClassifier:
     def __init__(self, medical_type, epochs=50):
         """
-        Initializes the CLIPZeroShotClassifier with a specific medical type and computational device.
+        Initializes the TrainMedClipClassifier with a specific medical type and computational device.
         """
         self.medical_type = medical_type
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -54,8 +54,13 @@ class TrainMedClipClassifier:
         else:
             print("Error configuring NVIDIA library.")
         torch._dynamo.config.suppress_errors = True
-
+  
     def convert_models_to_fp32(self, model):
+        """
+        Converts model parameters and gradients to float32 precision. This is necessary for compatibility with certain optimizers or hardware.
+        :params model: The model to convert to float32 precision.
+        :return: None. Converts the model parameters and gradients in-place.
+        """   
         for p in model.parameters():
             if p.grad is not None:
                 p.data = p.data.float()
@@ -74,9 +79,9 @@ class TrainMedClipClassifier:
         clf.to(self.device)
         return model, clf
 
-    def zero_shot_classification(self, image_batch, categories):
+    def zero_shot_classification(self, image_batch):
         """
-        Performs zero-shot classification using the CLIP model on a batch of images.
+         Performs zero-shot classification using the MedCLIP model on a batch of images.
         :param image_batch: A tensor representing a batch of images.
         :param categories: A list of categories for classification.
         :return: The top probabilities and labels for the classification predictions.
@@ -92,7 +97,7 @@ class TrainMedClipClassifier:
             pred_label[pred_score<0.5] = 0
         return pred_score, pred_label
 
-    def evaluate(self, generators, steps, task ):
+    def evaluate(self, generators, steps ):
         """
         Evaluates the classifier performance on given datasets for a specified task and number of prompts.
         :param generators: A dictionary of data loaders for each dataset (e.g., 'Train', 'Validation', 'Test').
@@ -108,7 +113,7 @@ class TrainMedClipClassifier:
                     inputs, labels = next(generators[idx])
                     inputs = torch.from_numpy(inputs).to(self.device)
                     labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
-                    top_probs, top_labels = self.zero_shot_classification(inputs, task)
+                    top_probs, top_labels = self.zero_shot_classification(inputs)
                     y_true.extend(labels.cpu().numpy())
                     y_pred.extend(top_labels)
                     y_score.extend(top_probs)
@@ -137,8 +142,15 @@ class TrainMedClipClassifier:
             file.write(f"Accuracy: {acc:.4f}\nPrecision: {prec:.4f}\nRecall: {rec:.4f}\nAUC: {auc:.4f}\n")
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
-
+       
     def train_validate(self, train_loader, validation_loader, steps, categories):
+        """
+        Coordinates the training and validation of the MedCLIP model for a specified number of epochs.
+        param train_loader: The data loader for the training dataset.
+        param validation_loader: The data loader for the validation dataset.
+        param steps: A dictionary specifying the number of batches to train and validate for each dataset.
+        param categories: A list of categories for classification.
+        """
         model_save_path = f'results/finetune/{self.medical_type}/medclip/best_model.pth'
         os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
         scaler = torch.cuda.amp.GradScaler()
@@ -150,8 +162,7 @@ class TrainMedClipClassifier:
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
                 
-                if self.option == "regular_captions":
-                  texts = {"COVID": [f"a photo of {categories[int(labels[i].item())]} lungs." for i in range(len(labels))]}
+                texts = {"COVID": [f"a photo of {categories[int(labels[i].item())]} lungs." for i in range(len(labels))]}
                
                 cls_prompts = process_class_prompts(texts)
                 self.optimizer.zero_grad()
@@ -177,8 +188,7 @@ class TrainMedClipClassifier:
                 inputs = torch.from_numpy(inputs).to(self.device)
                 labels = torch.from_numpy(labels).to(self.device).float().unsqueeze(1)
                 
-                if self.option == "regular_captions":
-                  texts = {"COVID": [f"a photo of {categories[int(labels[i].item())]} lungs." for i in range(len(labels))]}
+                texts = {"COVID": [f"a photo of {categories[int(labels[i].item())]} lungs." for i in range(len(labels))]}
                
                 cls_prompts = process_class_prompts(texts)
                 self.optimizer.zero_grad()
@@ -192,8 +202,8 @@ class TrainMedClipClassifier:
                                   
                 validation_losses.append(loss_value.item())
             avg_validation_loss = np.mean(validation_losses)
-            train_acc, train_prec, train_rec, train_auc, _, _ = self.evaluate([train_loader], {"Train":steps["Train"]}, categories)
-            val_acc, val_prec, val_rec, val_auc, _, _ = self.evaluate([validation_loader], {"Validation":steps["Validation"]}, categories)
+            train_acc, train_prec, train_rec, train_auc, _, _ = self.evaluate([train_loader], {"Train":steps["Train"]})
+            val_acc, val_prec, val_rec, val_auc, _, _ = self.evaluate([validation_loader], {"Validation":steps["Validation"]})
             self.metric_history['train_loss'].append(avg_train_loss)
             self.metric_history['val_loss'].append(avg_validation_loss)
             self.metric_history['train_accuracy'].append(train_acc)
@@ -231,7 +241,7 @@ class TrainMedClipClassifier:
                     break
         self.medclip_model.load_state_dict(torch.load(model_save_path))
 
-    def run(self, generators, steps, option, number_of_captions, categories = ['normal', 'covid']):
+    def run(self, generators, steps, categories = ['normal', 'covid']):
         """
         Coordinates the process of zero-shot classification evaluation and result saving for the CLIP model.
         :param generators: A dictionary of data loaders for each dataset.
@@ -239,10 +249,7 @@ class TrainMedClipClassifier:
         :param categories: A list of categories for classification.
         :return: None. Prints the evaluation metrics and saves the results.
         """
-        self.option = option
-        self.number_of_captions = number_of_captions
-        assert self.option == "random_captions" and self.number_of_captions >= 1 or self.option == "regular_captions" and self.number_of_captions == 1, "Invalid option settings"
         self.train_validate(generators[0],generators[1],steps,categories)
-        acc, prec, rec, auc, cr, cm = self.evaluate([generators[2]], {"Test":steps["Test"]}, categories)
+        acc, prec, rec, auc, cr, cm = self.evaluate([generators[2]], {"Test":steps["Test"]})
         print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
         self.save_results(acc, prec, rec, auc, cr, cm)
