@@ -10,7 +10,7 @@ def run_finetune_clip(medical_type, model_type, batch_size):
     :param batch_size: The batch size for data loading.
     """
     generators, lengths = load_data.create_loader(medical_type, batch_size, model_type)
-    visualize.save_random_images_from_generators(generators, [medical_type, model_type, "fine_tune"], 2)
+    visualize.save_random_images_from_generators(generators, [medical_type, model_type, "t_pretrained"], 2)
     if model_type == "medclip":
         classifier = TrainMedClipClassifier(medical_type)
         classifier.run(generators, lengths)

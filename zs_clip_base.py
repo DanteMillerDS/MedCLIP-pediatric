@@ -10,7 +10,7 @@ def run_classification_process_clip(medical_type, model_type, batch_size):
     :param batch_size: The batch size for data loading.
     """
     generators, lengths = load_data.create_loader(medical_type, batch_size, model_type)
-    visualize.save_random_images_from_generators(generators, [medical_type, model_type, "zero_shot"], 2)
+    visualize.save_random_images_from_generators(generators, [medical_type, model_type, "zs_clip_base"], 2)
     if model_type == "clip":
         classifier = CLIPZeroShotClassifier(medical_type)
         classifier.run(generators, lengths, "zs_clip_base")

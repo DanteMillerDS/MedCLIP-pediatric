@@ -135,7 +135,7 @@ class TrainMedClipClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a text file.
         """
-        directory = f"results/finetune/{self.medical_type}/medclip"
+        directory = f"results/t_pretrained/{self.medical_type}/medclip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -152,7 +152,7 @@ class TrainMedClipClassifier:
         param steps: A dictionary specifying the number of batches to train and validate for each dataset.
         param categories: A list of categories for classification.
         """
-        model_save_path = f'results/finetune/{self.medical_type}/medclip/best_model.pth'
+        model_save_path = f'results/t_pretrained/{self.medical_type}/medclip/best_model.pth'
         os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
         scaler = torch.cuda.amp.GradScaler()
         for epoch in range(self.epochs):
@@ -224,7 +224,7 @@ class TrainMedClipClassifier:
                 plt.legend(loc='best')
                 plt.title(metric_name.capitalize())
                 plt.tight_layout()
-                plt.savefig(f'results/finetune/{self.medical_type}/medclip/metrics_{metric_name}_epoch.png')
+                plt.savefig(f'results/t_pretrained/{self.medical_type}/medclip/metrics_{metric_name}_epoch.png')
                 plt.close()
 
             print(f"Epoch {epoch+1}/{self.epochs}")
