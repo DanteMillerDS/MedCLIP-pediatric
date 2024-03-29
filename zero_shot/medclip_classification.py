@@ -42,7 +42,7 @@ class MedCLIPZeroShotClassifier:
         model = MedCLIPModel(vision_cls=vision_model_cls)
         model.from_pretrained()
         model.to(self.device)
-        clf = PromptClassifier(model, ensemble=True)
+        clf = PromptClassifier(model, ensemble=False)
         clf.to(self.device)
         return clf
 
@@ -61,10 +61,10 @@ class MedCLIPZeroShotClassifier:
             cls_prompts = process_class_prompts(task_type)
             input_dictionary['prompt_inputs'] = cls_prompts
             output = self.medclip_model(**input_dictionary)['logits'].cpu().numpy()
-            top_probs = output.reshape(1, -1)[0]
-            pred_score = torch.tensor(top_probs).sigmoid().numpy().flatten()
-            top_labels = np.round(pred_score)
-        return pred_score, top_labels
+            pred_score = torch.tensor(output.reshape(1, -1)[0]).sigmoid().numpy().flatten()
+            pred_label = np.ones(len(pred_score))
+            pred_label[pred_score<0.5] = 0
+        return pred_score, pred_label
 
     def evaluate(self, generators, steps, task, n):
         """
@@ -137,4 +137,3 @@ class MedCLIPZeroShotClassifier:
                 acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
                 print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
                 self.save_results(task, n_prompts, acc, prec, rec, auc, cr, cm)
-

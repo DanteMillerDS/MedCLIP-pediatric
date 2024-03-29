@@ -87,10 +87,10 @@ class TrainMedClipClassifier:
             cls_prompts = process_class_prompts(texts)
             input_dictionary['prompt_inputs'] = cls_prompts
             output = self.clf(**input_dictionary)['logits'].cpu().numpy()
-            top_probs = output.reshape(1, -1)[0]
-            pred_score = torch.tensor(top_probs).sigmoid().numpy().flatten()
-            top_labels = np.round(pred_score)
-        return pred_score, top_labels
+            pred_score = torch.tensor(output.reshape(1, -1)[0]).sigmoid().numpy().flatten()
+            pred_label = np.ones(len(pred_score))
+            pred_label[pred_score<0.5] = 0
+        return pred_score, pred_label
 
     def evaluate(self, generators, steps, task ):
         """
