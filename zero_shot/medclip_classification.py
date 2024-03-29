@@ -63,7 +63,7 @@ class MedCLIPZeroShotClassifier:
             output = self.medclip_model(**input_dictionary)['logits'].cpu().numpy()
             pred_score = torch.tensor(output.reshape(1, -1)[0]).sigmoid().numpy().flatten()
             pred_label = np.ones(len(pred_score))
-            pred_label[pred_score<0.5] = 0
+            pred_label[pred_score<0.6] = 0
         return pred_score, pred_label
 
     def evaluate(self, generators, steps, task, n):
@@ -116,7 +116,7 @@ class MedCLIPZeroShotClassifier:
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
         
-    def run(self, generators, steps, tasks = ["covid_task", "rsna_task"]):
+    def run(self, generators, steps, tasks = ["covid_task", "rsna_task", ""]):
         """
         Runs the zero-shot classification and evaluates performance across specified tasks.
         :param generators: A dictionary of data loaders for each dataset.

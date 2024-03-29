@@ -94,7 +94,7 @@ class TrainMedClipClassifier:
             output = self.clf(**input_dictionary)['logits'].cpu().numpy()
             pred_score = torch.tensor(output.reshape(1, -1)[0]).sigmoid().numpy().flatten()
             pred_label = np.ones(len(pred_score))
-            pred_label[pred_score<0.5] = 0
+            pred_label[pred_score<0.6] = 0
         return pred_score, pred_label
 
     def evaluate(self, generators, steps ):
