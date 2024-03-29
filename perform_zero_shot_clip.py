@@ -2,8 +2,7 @@ import data_loader.extract_data as extract_data
 import data_loader.load_data as load_data
 import visualize.visualize as visualize
 from zero_shot.clip_classification import CLIPZeroShotClassifier
-from zero_shot.medclip_classification import MedCLIPZeroShotClassifier
-def run_classification_process(medical_type, model_type, batch_size):
+def run_classification_process_clip(medical_type, model_type, batch_size):
     """
     Handles the process of running zero-shot classification for a given model type and medical type.
     :param medical_type: The type of medical data to classify ('ucsd', 'ori').
@@ -15,17 +14,13 @@ def run_classification_process(medical_type, model_type, batch_size):
     if model_type == "clip":
         classifier = CLIPZeroShotClassifier(medical_type)
         classifier.run(generators, lengths)
-    elif model_type == "medclip":
-        classifier = MedCLIPZeroShotClassifier(medical_type)
-        classifier.run(generators, lengths)
     else:
         print("Did not define a proper classifer!")
 
 if __name__ == "__main__":
     extract_data.mount_and_process()
     batch_size = 256
-    model_types = ['medclip', 'clip']
+    model_types = ['clip']
     medical_types = ['ucsd', 'ori']
-    for medical_type in medical_types:
-        for model_type in model_types:
-            run_classification_process(medical_type, model_type, batch_size)
+    run_classification_process_clip(medical_types[0], model_types[0], batch_size)
+    run_classification_process_clip(medical_types[1], model_types[0], batch_size)
