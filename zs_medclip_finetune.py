@@ -23,6 +23,6 @@ if __name__ == "__main__":
     batch_size = 256
     model_types = ['medclip']
     medical_types = ['ucsd', 'ori']
-    paths = ["results/finetune/ori/medclip/best_model.pth","results/finetune/ucsd/medclip/best_model.pth"]
+    paths = ["results/t_pretrained/ori/medclip/best_model.pth","results/t_pretrained/ucsd/medclip/best_model.pth"]
     run_classification_process_medclip(medical_types[0], model_types[0], batch_size, paths[1])
     run_classification_process_medclip(medical_types[1], model_types[0], batch_size, paths[1])
