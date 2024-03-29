@@ -18,9 +18,10 @@ class MedCLIPZeroShotClassifier:
         self.medical_type = medical_type
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
-        self.medclip_model = self.load_medclip_model(vision_model_cls)
+        model, self.medclip_model = self.load_medclip_model(vision_model_cls)
         if path is not None:
-            self.medclip_model.load_state_dict(torch.load(path))
+            model.load_state_dict(torch.load(path))
+            
     def configure(self):
         """
         Configures the system environment for optimal performance.
@@ -44,7 +45,7 @@ class MedCLIPZeroShotClassifier:
         model.to(self.device)
         clf = PromptClassifier(model, ensemble=False)
         clf.to(self.device)
-        return clf
+        return model, clf
 
 
     def zero_shot_classification(self, image_batch, task, n):
@@ -93,7 +94,7 @@ class MedCLIPZeroShotClassifier:
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
         return acc, prec, rec, auc, cr, cm
 
-    def save_results(self, task, n_prompts, acc, prec, rec, auc, cr, cm):
+    def save_results(self, task, n_prompts, acc, prec, rec, auc, cr, cm, experiment_type):
         """
         Saves the evaluation results to a file.
         
@@ -107,7 +108,7 @@ class MedCLIPZeroShotClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a file in the specified directory.
         """
-        directory = f"results/zero_shot/{self.medical_type}/medclip"
+        directory = f"results/{experiment_type}/{self.medical_type}/medclip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -116,7 +117,7 @@ class MedCLIPZeroShotClassifier:
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
         
-    def run(self, generators, steps, tasks = ["covid_task", "rsna_task", ""]):
+    def run(self, generators, steps, experiment_type, tasks = ["covid_task", "rsna_task", ""]):
         """
         Runs the zero-shot classification and evaluates performance across specified tasks.
         :param generators: A dictionary of data loaders for each dataset.
@@ -136,4 +137,4 @@ class MedCLIPZeroShotClassifier:
             if best_metrics:
                 acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
                 print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
-                self.save_results(task, n_prompts, acc, prec, rec, auc, cr, cm)
+                self.save_results(task, n_prompts, acc, prec, rec, auc, cr, cm,experiment_type)

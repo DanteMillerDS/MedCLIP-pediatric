@@ -84,7 +84,7 @@ class CLIPZeroShotClassifier:
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
         return acc, prec, rec, auc, cr, cm
 
-    def save_results(self, acc, prec, rec, auc, cr, cm):
+    def save_results(self, acc, prec, rec, auc, cr, cm, experiment_type):
         """
         Saves the evaluation results to a file within a directory specific to the medical type and CLIP model.
         :param acc: The accuracy of the classification.
@@ -95,7 +95,7 @@ class CLIPZeroShotClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a text file.
         """
-        directory = f"results/zero_shot/{self.medical_type}/clip"
+        directory = f"results/{experiment_type}/{self.medical_type}/clip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -104,7 +104,7 @@ class CLIPZeroShotClassifier:
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
 
-    def run(self, generators, steps, categories = ['normal', 'covid']):
+    def run(self, generators, steps, experiment_type, categories = ['normal', 'covid']):
         """
         Coordinates the process of zero-shot classification evaluation and result saving for the CLIP model.
         :param generators: A dictionary of data loaders for each dataset.
@@ -114,4 +114,4 @@ class CLIPZeroShotClassifier:
         """
         acc, prec, rec, auc, cr, cm = self.evaluate(generators, steps, categories)
         print(f"\nAccuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, AUC: {auc:.4f}")
-        self.save_results(acc, prec, rec, auc, cr, cm)
+        self.save_results(acc, prec, rec, auc, cr, cm, experiment_type)
