@@ -13,7 +13,7 @@ def run_finetune_clip(medical_type, model_type, batch_size):
     visualize.save_random_images_from_generators(generators, [medical_type, model_type, "fine_tune"], 2)
     if model_type == "medclip":
         classifier = TrainMedClipClassifier(medical_type)
-        classifier.run(generators, lengths,1)
+        classifier.run(generators, lengths)
         return classifier
     else:
         print("Did not define a proper classifer!")
