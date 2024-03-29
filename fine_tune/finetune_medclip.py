@@ -13,7 +13,7 @@ from torch.cuda.amp import GradScaler, autocast
 import matplotlib.pyplot as plt
 
 class TrainMedClipClassifier:
-    def __init__(self, medical_type, epochs=50):
+    def __init__(self, medical_type, epochs=25):
         """
         Initializes the TrainMedClipClassifier with a specific medical type and computational device.
         """
@@ -21,7 +21,8 @@ class TrainMedClipClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.configure()
         self.medclip_model, self.clf = self.load_medclip_model(MedCLIPVisionModelViT)
-        self.optimizer = optim.Adam(self.medclip_model.parameters(), lr=1e-5,weight_decay = 1e-6)
+        self.wd = 0.1 if self.medical_type == "ucsd" else 1e-4
+        self.optimizer = optim.Adam(self.medclip_model.parameters(), lr=1e-5,weight_decay =self.wd)
         self.epochs = epochs
         self.loss_img = nn.CrossEntropyLoss()
         self.loss_txt = nn.CrossEntropyLoss()
@@ -37,7 +38,7 @@ class TrainMedClipClassifier:
             'train_auc': [],
             'val_auc': [],
         }
-        self.early_stopping_patience = 20
+        self.early_stopping_patience = 5
         self.early_stopping_counter = 0
         self.best_val_loss = float('inf')
         self.early_stop = False
