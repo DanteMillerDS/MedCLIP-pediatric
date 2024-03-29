@@ -13,7 +13,7 @@ from torch.cuda.amp import GradScaler, autocast
 import matplotlib.pyplot as plt
 
 class TrainMedClipClassifier:
-    def __init__(self, medical_type, epochs=25):
+    def __init__(self, medical_type, epochs=50):
         """
         Initializes the TrainMedClipClassifier with a specific medical type and computational device.
         """
