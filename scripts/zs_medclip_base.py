@@ -1,7 +1,6 @@
 import data_loader.extract_data as extract_data
 import data_loader.load_data as load_data
 import visualize.visualize as visualize
-from zero_shot.clip_classification import CLIPZeroShotClassifier
 from zero_shot.medclip_classification import MedCLIPZeroShotClassifier
 def run_classification_process_medclip(medical_type, model_type, batch_size):
     """
