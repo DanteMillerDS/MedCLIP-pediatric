@@ -178,7 +178,7 @@ class MedCLIPZeroShotClassifier:
             file.write(f'Classification Report\n\n{cr}\n\nConfusion Matrix\n\n{np.array2string(cm)}')
         print(f"Results saved to {filepath}")
         
-    def run(self, generators, steps, experiment_type, tasks = ["covid_task", "rsna_task", ""]):
+    def run(self, generators, steps, experiment_type, tasks = ["covid_task"]):
         """
         Runs the zero-shot classification and evaluates performance across specified tasks.
         :param generators: A dictionary of data loaders for each dataset.
