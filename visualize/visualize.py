@@ -10,6 +10,7 @@ def create_save_directory(info):
     """
     medical_type, model_type, task = info
     directory = os.path.join("results","visualization", task, medical_type, model_type, "images")
+    # filename = "cxr_images.pdf"
     filename = "cxr_images.png"
     filepath = os.path.join(directory, filename)
     os.makedirs(directory, exist_ok=True)
@@ -50,7 +51,7 @@ def plot_images(set_images_labels, titles, filepath):
             plt.subplot(3, len(image_batch), j + 1 + (i * len(image_batch)))
             plt.imshow(image)
             label = "Covid" if label == 1 else "Normal"
-            plt.title(f"Patient has {label} lungs.")
+            plt.title(f"Patient has {label} lungs.", fontsize = 18)
             plt.axis('off')  
     plt.tight_layout()
     plt.savefig(filepath)
