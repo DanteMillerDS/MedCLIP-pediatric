@@ -5,6 +5,9 @@ from medclip import MedCLIPModel, MedCLIPVisionModelViT, MedCLIPVisionModel, Pro
 from medclip.prompts import generate_covid_class_prompts, process_class_prompts, generate_rsna_class_prompts
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, classification_report, confusion_matrix
 import os
+import matplotlib.pyplot as plt
+from torchvision import transforms
+from PIL import Image, ImageDraw, ImageFont
 
 class MedCLIPZeroShotClassifier:
     def __init__(self, medical_type, vision_model_cls=MedCLIPVisionModelViT,path=None):
@@ -67,7 +70,7 @@ class MedCLIPZeroShotClassifier:
             pred_label[pred_score<0.6] = 0
         return pred_score, pred_label
 
-    def evaluate(self, generators, steps, task, n):
+    def evaluate(self, generators, steps, task, n, visualize=False):
         """
         Evaluates the classifier performance on given datasets for a specified task and number of prompts.
         :param generators: A dictionary of data loaders for each dataset (e.g., 'Train', 'Validation', 'Test').
@@ -76,7 +79,7 @@ class MedCLIPZeroShotClassifier:
         :param n: The number of prompts to use for zero-shot classification.
         :return: Accuracy, precision, recall, AUC, classification report, and confusion matrix of the evaluation.
         """
-        y_true, y_pred, y_score = [], [], []
+        y_true, y_pred, y_score,y_input = [], [], [], []
         self.medclip_model.eval()
         with torch.no_grad():
             for idx,(data_type, step) in enumerate(steps.items()):
@@ -88,13 +91,71 @@ class MedCLIPZeroShotClassifier:
                     y_true.extend(labels.cpu().numpy())
                     y_pred.extend(top_labels)
                     y_score.extend(top_probs)
+                    y_input.extend(inputs.cpu().numpy())
                 generators[idx].reset()
+        if visualize:
+            directory = os.path.join("results","visualization", self.experiment_type, self.medical_type, "medclip", "images")
+            filename = "prediction_images.pdf"
+            filepath = os.path.join(directory, filename)
+            sorted_indices = sorted(range(len(y_score)), key=lambda i: y_score[i], reverse=True)
+            y_inputs_x = []
+            y_score_x = []
+            y_true_x = []
+            y_pred_x = []
+            count_11 = 0  # True 1, Predicted 1
+            count_10 = 0  # True 1, Predicted 0
+            count_01 = 0  # True 0, Predicted 1
+            count_00 = 0  # True 0, Predicted 0
+            max_samples_per_scenario = 3 
+            for i in sorted_indices:
+              true_label = y_true[i]
+              predicted_label = y_pred[i]
+              if true_label == 1 and predicted_label == 1 and count_11 < max_samples_per_scenario:
+                  y_inputs_x.append(y_input[i])
+                  y_score_x.append(y_score[i])
+                  y_true_x.append(y_true[i])
+                  y_pred_x.append(y_pred[i])
+                  count_11 += 1
+              elif true_label == 1 and predicted_label == 0 and count_10 < max_samples_per_scenario:
+                  y_inputs_x.append(y_input[i])
+                  y_score_x.append(y_score[i])
+                  y_true_x.append(y_true[i])
+                  y_pred_x.append(y_pred[i])
+                  count_10 += 1
+              elif true_label == 0 and predicted_label == 1 and count_01 < max_samples_per_scenario:
+                  y_inputs_x.append(y_input[i])
+                  y_score_x.append(y_score[i])
+                  y_true_x.append(y_true[i])
+                  y_pred_x.append(y_pred[i])
+                  count_01 += 1
+              elif true_label == 0 and predicted_label == 0 and count_00 < max_samples_per_scenario:
+                  y_inputs_x.append(y_input[i])
+                  y_score_x.append(y_score[i])
+                  y_true_x.append(y_true[i])
+                  y_pred_x.append(y_pred[i])
+                  count_00 += 1
+              if count_11 == max_samples_per_scenario and count_10 == max_samples_per_scenario and \
+                count_01 == max_samples_per_scenario and count_00 == max_samples_per_scenario:
+                  break
+     
+            fig, axs = plt.subplots(3,4, figsize=(15, 12))
+            axs = axs.ravel()
+            for i, (image, predicted, label) in enumerate(zip(y_inputs_x,y_pred_x,y_true_x)):
+                axs[i].imshow(image.transpose(1, 2, 0))
+                axs[i].set_title(f" True Label is {str(int(label[0]))} and Predicted Label is {str(predicted[0])}")
+                axs[i].axis('off')
+            for j in range(i + 1, len(axs)):
+              axs[j].axis('off')
+            plt.tight_layout()
+            plt.savefig(filepath)
+            print(f"Results saved to {filepath}")
+            plt.close()
         
         acc, prec, rec, auc = accuracy_score(y_true, y_pred), precision_score(y_true, y_pred), recall_score(y_true, y_pred), roc_auc_score(y_true, y_score)
         cr, cm = classification_report(y_true, y_pred), confusion_matrix(y_true, y_pred)
         return acc, prec, rec, auc, cr, cm
 
-    def save_results(self, task, n_prompts, acc, prec, rec, auc, cr, cm, experiment_type):
+    def save_results(self, task, n_prompts, acc, prec, rec, auc, cr, cm):
         """
         Saves the evaluation results to a file.
         
@@ -108,7 +169,7 @@ class MedCLIPZeroShotClassifier:
         :param cm: The confusion matrix.
         :return: None. Results are saved to a file in the specified directory.
         """
-        directory = f"results/{experiment_type}/{self.medical_type}/medclip"
+        directory = f"results/{self.experiment_type}/{self.medical_type}/medclip"
         filename = "classification_results.txt"
         filepath = os.path.join(directory, filename)
         os.makedirs(directory, exist_ok=True)
@@ -124,6 +185,7 @@ class MedCLIPZeroShotClassifier:
         :param steps: A dictionary specifying the number of evaluation steps for each dataset.
         :return: None. Prints and saves the evaluation results.
         """
+        self.experiment_type = experiment_type
         for task in tasks:
             best_auc = 0
             best_metrics = None
@@ -136,5 +198,6 @@ class MedCLIPZeroShotClassifier:
 
             if best_metrics:
                 acc, prec, rec, auc, cr, cm, n_prompts = best_metrics
+                acc, prec, rec, auc, cr, cm = self.evaluate(generators, steps, task, n_prompts, visualize=True)
                 print(f"Best AUC for {task} with {n_prompts} prompts: {auc:.4f}")
-                self.save_results(task, n_prompts, acc, prec, rec, auc, cr, cm,experiment_type)
+                self.save_results(task, n_prompts, acc, prec, rec, auc, cr, cm)

@@ -11,7 +11,7 @@ def create_save_directory(info):
     medical_type, model_type, task = info
     directory = os.path.join("results","visualization", task, medical_type, model_type, "images")
     # filename = "cxr_images.pdf"
-    filename = "cxr_images.png"
+    filename = "cxr_images.pdf"
     filepath = os.path.join(directory, filename)
     os.makedirs(directory, exist_ok=True)
     return filepath
