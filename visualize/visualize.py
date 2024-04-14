@@ -51,6 +51,7 @@ def plot_images(set_images_labels, titles, filepath):
             plt.imshow(image)
             label = "Covid" if label == 1 else "Normal"
             plt.title(f"Patient has {label} lungs.")
+            plt.axis('off')  
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Results saved to {filepath}")
