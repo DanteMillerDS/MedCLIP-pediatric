@@ -162,11 +162,11 @@ class TrainClipClassifier:
                 count_01 == max_samples_per_scenario and count_00 == max_samples_per_scenario:
                   break
      
-            fig, axs = plt.subplots(3,4, figsize=(15, 12))
+            fig, axs = plt.subplots(3,4, figsize=(12, 8))
             axs = axs.ravel()
             for i, (image, predicted, label) in enumerate(zip(y_inputs_x,y_pred_x,y_true_x)):
                 axs[i].imshow(image.transpose(1, 2, 0))
-                axs[i].set_title(f" True Label is {str(int(label[0]))} and Predicted Label is {str(predicted[0])}")
+                axs[i].set_title(f" True Label is {str(int(label[0]))} and Predicted Label is {str(predicted[0])}",fontsize = 18)
                 axs[i].axis('off')
             for j in range(i + 1, len(axs)):
               axs[j].axis('off')
