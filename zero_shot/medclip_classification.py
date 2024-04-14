@@ -97,6 +97,7 @@ class MedCLIPZeroShotClassifier:
             directory = os.path.join("results","visualization", self.experiment_type, self.medical_type, "medclip", "images")
             filename = "prediction_images.pdf"
             filepath = os.path.join(directory, filename)
+            os.makedirs(directory, exist_ok=True)
             sorted_indices = sorted(range(len(y_score)), key=lambda i: y_score[i], reverse=True)
             y_inputs_x = []
             y_score_x = []
