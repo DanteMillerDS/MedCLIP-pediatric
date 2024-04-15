@@ -1,7 +1,7 @@
-Accuracy: 0.6765
-Precision: 0.6976
-Recall: 0.5887
-AUC: 0.4647
+Accuracy: 0.6752
+Precision: 0.6963
+Recall: 0.5867
+AUC: 0.4645
 Classification Report
 
               precision    recall  f1-score   support
@@ -16,5 +16,5 @@ weighted avg       0.68      0.68      0.67      3076
 
 Confusion Matrix
 
-[[1202  381]
- [ 614  879]]
+[[1201  382]
+ [ 617  876]]

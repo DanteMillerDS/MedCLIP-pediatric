@@ -1,8 +1,8 @@
-Number of Prompts: 5
-Accuracy: 0.7490
-Precision: 0.6780
+Number of Prompts: 7
+Accuracy: 0.7500
+Precision: 0.6790
 Recall: 0.9196
-AUC: 0.8602
+AUC: 0.8588
 Classification Report
 
               precision    recall  f1-score   support
@@ -12,10 +12,10 @@ Classification Report
 
     accuracy                           0.75      3076
    macro avg       0.78      0.75      0.74      3076
-weighted avg       0.78      0.75      0.74      3076
+weighted avg       0.79      0.75      0.74      3076
 
 
 Confusion Matrix
 
-[[ 931  652]
+[[ 934  649]
  [ 120 1373]]

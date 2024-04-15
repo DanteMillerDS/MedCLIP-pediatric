@@ -1,7 +1,7 @@
 Accuracy: 0.5747
 Precision: 0.5622
 Recall: 0.6040
-AUC: 0.5154
+AUC: 0.5153
 Classification Report
 
               precision    recall  f1-score   support
