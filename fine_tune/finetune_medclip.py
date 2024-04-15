@@ -165,13 +165,19 @@ class TrainMedClipClassifier:
               if count_11 == max_samples_per_scenario and count_10 == max_samples_per_scenario and \
                 count_01 == max_samples_per_scenario and count_00 == max_samples_per_scenario:
                   break
-     
             fig, axs = plt.subplots(3,4, figsize=(12, 8))
             axs = axs.ravel()
             for i, (image, predicted, label) in enumerate(zip(y_inputs_x,y_pred_x,y_true_x)):
                 axs[i].imshow(image.transpose(1, 2, 0))
-                axs[i].set_title(f" True Label is {str(int(label[0]))} and Predicted Label is {str(predicted)}",fontsize = 18)
-                axs[i].axis('off')
+                axs[i].set_xticks([])  
+                axs[i].set_yticks([])  
+                if predicted == int(label[0]):
+                    axs[i].patch.set_edgecolor('green')
+                    axs[i].patch.set_linewidth(4)
+                else:
+                    axs[i].patch.set_edgecolor('red')
+                    axs[i].patch.set_linewidth(4)
+                axs[i].set_title(f"True Label = {str(int(label[0]))}")
             for j in range(i + 1, len(axs)):
               axs[j].axis('off')
             plt.tight_layout()
