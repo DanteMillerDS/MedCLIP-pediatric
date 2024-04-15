@@ -141,7 +141,7 @@ class CLIPZeroShotClassifier:
                 else:
                     axs[i].patch.set_edgecolor('red')
                     axs[i].patch.set_linewidth(4)
-                axs[i].set_title(f"True Label = {str(int(label[0]))}")
+                axs[i].set_title(f"True Label = {str(int(label[0]))}", fontsize = 18)
             for j in range(i + 1, len(axs)):
               axs[j].axis('off')
             plt.tight_layout()
